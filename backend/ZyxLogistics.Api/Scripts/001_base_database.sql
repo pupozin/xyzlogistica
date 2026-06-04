@@ -678,10 +678,68 @@ BEGIN
         IntervaloMinutos,
         HoraInicio,
         HoraFim,
-        Ativo
+        Ativo,
+        CriadoEm,
+        AtualizadoEm
     FROM dbo.ConfiguracaoAgendamento
     WHERE Ativo = 1
     ORDER BY Id DESC;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_ConfiguracaoAgendamento_Atualizar
+    @IntervaloMinutos INT,
+    @HoraInicio TIME(0),
+    @HoraFim TIME(0)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF @IntervaloMinutos <= 0
+    BEGIN
+        THROW 50003, 'O intervalo de agendamento deve ser maior que zero.', 1;
+    END
+
+    IF @HoraInicio >= @HoraFim
+    BEGIN
+        THROW 50003, 'A hora inicial deve ser menor que a hora final.', 1;
+    END
+
+    DECLARE @Id INT;
+
+    SELECT TOP (1) @Id = Id
+    FROM dbo.ConfiguracaoAgendamento
+    WHERE Ativo = 1
+    ORDER BY Id DESC;
+
+    IF @Id IS NULL
+    BEGIN
+        INSERT INTO dbo.ConfiguracaoAgendamento (IntervaloMinutos, HoraInicio, HoraFim, Ativo)
+        VALUES (@IntervaloMinutos, @HoraInicio, @HoraFim, 1);
+
+        SET @Id = CAST(SCOPE_IDENTITY() AS INT);
+    END
+    ELSE
+    BEGIN
+        UPDATE dbo.ConfiguracaoAgendamento
+        SET
+            IntervaloMinutos = @IntervaloMinutos,
+            HoraInicio = @HoraInicio,
+            HoraFim = @HoraFim,
+            AtualizadoEm = SYSDATETIME()
+        WHERE Id = @Id;
+    END
+
+    SELECT
+        Id,
+        IntervaloMinutos,
+        HoraInicio,
+        HoraFim,
+        Ativo,
+        CriadoEm,
+        AtualizadoEm
+    FROM dbo.ConfiguracaoAgendamento
+    WHERE Id = @Id;
 END
 GO
 
