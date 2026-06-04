@@ -202,13 +202,30 @@ BEGIN
         AtualizadoEm DATETIME2(0) NULL
     );
 
-    CREATE UNIQUE INDEX UX_Motorista_Cnh ON dbo.Motorista(Cnh);
+    CREATE UNIQUE INDEX UX_Motorista_Cnh
+        ON dbo.Motorista(Cnh)
+        WHERE Ativo = 1;
+END
+GO
+
+IF EXISTS
+(
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'UX_Motorista_Cnh'
+      AND object_id = OBJECT_ID(N'dbo.Motorista')
+      AND has_filter = 0
+)
+BEGIN
+    DROP INDEX UX_Motorista_Cnh ON dbo.Motorista;
 END
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_Motorista_Cnh' AND object_id = OBJECT_ID(N'dbo.Motorista'))
 BEGIN
-    CREATE UNIQUE INDEX UX_Motorista_Cnh ON dbo.Motorista(Cnh);
+    CREATE UNIQUE INDEX UX_Motorista_Cnh
+        ON dbo.Motorista(Cnh)
+        WHERE Ativo = 1;
 END
 GO
 
@@ -726,6 +743,108 @@ BEGIN
     SET NOCOUNT ON;
 
     UPDATE dbo.Transportadora
+    SET
+        Ativo = 0,
+        AtualizadoEm = SYSDATETIME()
+    WHERE Id = @Id
+      AND Ativo = 1;
+
+    SELECT @@ROWCOUNT AS LinhasAfetadas;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Motorista_Listar
+    @Nome NVARCHAR(150) = NULL,
+    @Cnh VARCHAR(30) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        Id,
+        Nome,
+        Cnh,
+        Ativo,
+        CriadoEm,
+        AtualizadoEm
+    FROM dbo.Motorista
+    WHERE Ativo = 1
+      AND (@Nome IS NULL OR Nome LIKE '%' + @Nome + '%')
+      AND (@Cnh IS NULL OR Cnh LIKE '%' + @Cnh + '%')
+    ORDER BY Nome;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Motorista_ObterPorId
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        Id,
+        Nome,
+        Cnh,
+        Ativo,
+        CriadoEm,
+        AtualizadoEm
+    FROM dbo.Motorista
+    WHERE Id = @Id
+      AND Ativo = 1;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Motorista_Inserir
+    @Nome NVARCHAR(150),
+    @Cnh VARCHAR(30)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF EXISTS (SELECT 1 FROM dbo.Motorista WHERE Cnh = @Cnh AND Ativo = 1)
+    BEGIN
+        THROW 50001, 'Ja existe um motorista cadastrado com esta CNH.', 1;
+    END
+
+    INSERT INTO dbo.Motorista (Nome, Cnh)
+    VALUES (@Nome, @Cnh);
+
+    SELECT CAST(SCOPE_IDENTITY() AS INT) AS Id;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Motorista_Atualizar
+    @Id INT,
+    @Nome NVARCHAR(150),
+    @Cnh VARCHAR(30)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF EXISTS (SELECT 1 FROM dbo.Motorista WHERE Cnh = @Cnh AND Id <> @Id AND Ativo = 1)
+    BEGIN
+        THROW 50001, 'Ja existe um motorista cadastrado com esta CNH.', 1;
+    END
+
+    UPDATE dbo.Motorista
+    SET
+        Nome = @Nome,
+        Cnh = @Cnh,
+        AtualizadoEm = SYSDATETIME()
+    WHERE Id = @Id
+      AND Ativo = 1;
+
+    SELECT @@ROWCOUNT AS LinhasAfetadas;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Motorista_Excluir
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE dbo.Motorista
     SET
         Ativo = 0,
         AtualizadoEm = SYSDATETIME()
