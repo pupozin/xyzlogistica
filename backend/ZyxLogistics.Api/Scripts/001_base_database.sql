@@ -519,6 +519,13 @@ BEGIN
 END
 GO
 
+IF NOT EXISTS (SELECT 1 FROM dbo.Usuario WHERE Email = N'admin@zyx.local' AND Ativo = 1)
+BEGIN
+    INSERT INTO dbo.Usuario (Nome, Email, Senha, PerfilId)
+    VALUES (N'Administrador', N'admin@zyx.local', NULL, 1);
+END
+GO
+
 MERGE dbo.Permissao AS alvo
 USING
 (

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Data.SqlClient;
 using ZyxLogistics.Api.DTOs;
 using ZyxLogistics.Api.Repositories;
@@ -17,6 +18,7 @@ namespace ZyxLogistics.Api.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = "perfis.visualizar")]
         public async Task<IActionResult> ListarPerfis()
         {
             var perfis = await _perfilRepository.ListarPerfisAsync();
@@ -24,6 +26,7 @@ namespace ZyxLogistics.Api.Controllers
         }
 
         [HttpGet("{id:int}")]
+        [Authorize(Policy = "perfis.visualizar")]
         public async Task<IActionResult> ObterPerfilPorId(int id)
         {
             var perfil = await _perfilRepository.ObterPerfilPorIdAsync(id);
@@ -37,6 +40,7 @@ namespace ZyxLogistics.Api.Controllers
         }
 
         [HttpPost]
+        [Authorize(Policy = "perfis.editar_permissoes")]
         public async Task<IActionResult> InserirPerfil(PerfilCreateRequest request)
         {
             try
@@ -55,6 +59,7 @@ namespace ZyxLogistics.Api.Controllers
         }
 
         [HttpPut("{id:int}")]
+        [Authorize(Policy = "perfis.editar_permissoes")]
         public async Task<IActionResult> AtualizarPerfil(int id, PerfilUpdateRequest request)
         {
             try
@@ -79,6 +84,7 @@ namespace ZyxLogistics.Api.Controllers
         }
 
         [HttpDelete("{id:int}")]
+        [Authorize(Policy = "perfis.editar_permissoes")]
         public async Task<IActionResult> ExcluirPerfil(int id)
         {
             try
@@ -99,6 +105,7 @@ namespace ZyxLogistics.Api.Controllers
         }
 
         [HttpGet("{perfilId:int}/permissoes")]
+        [Authorize(Policy = "perfis.visualizar")]
         public async Task<IActionResult> ListarPermissoesPorPerfil(int perfilId)
         {
             var permissoes = await _perfilRepository.ListarPermissoesPorPerfilAsync(perfilId);
@@ -106,6 +113,7 @@ namespace ZyxLogistics.Api.Controllers
         }
 
         [HttpPut("{perfilId:int}/permissoes")]
+        [Authorize(Policy = "perfis.editar_permissoes")]
         public async Task<IActionResult> AtualizarPermissoes(int perfilId, PerfilPermissoesUpdateRequest request)
         {
             try

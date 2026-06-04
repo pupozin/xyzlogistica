@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Data.SqlClient;
 using ZyxLogistics.Api.DTOs;
 using ZyxLogistics.Api.Repositories;
@@ -17,6 +18,7 @@ namespace ZyxLogistics.Api.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = "usuarios.visualizar")]
         public async Task<IActionResult> Listar([FromQuery] UsuarioFilterRequest filter)
         {
             var usuarios = await _usuarioRepository.ListarAsync(filter);
@@ -24,6 +26,7 @@ namespace ZyxLogistics.Api.Controllers
         }
 
         [HttpGet("{id:int}")]
+        [Authorize(Policy = "usuarios.visualizar")]
         public async Task<IActionResult> ObterPorId(int id)
         {
             var usuario = await _usuarioRepository.ObterPorIdAsync(id);
@@ -37,6 +40,7 @@ namespace ZyxLogistics.Api.Controllers
         }
 
         [HttpPost]
+        [Authorize(Policy = "usuarios.criar")]
         public async Task<IActionResult> Inserir(UsuarioCreateRequest request)
         {
             try
@@ -57,6 +61,7 @@ namespace ZyxLogistics.Api.Controllers
         }
 
         [HttpPut("{id:int}")]
+        [Authorize(Policy = "usuarios.editar")]
         public async Task<IActionResult> Atualizar(int id, UsuarioUpdateRequest request)
         {
             try
@@ -81,6 +86,7 @@ namespace ZyxLogistics.Api.Controllers
         }
 
         [HttpDelete("{id:int}")]
+        [Authorize(Policy = "usuarios.excluir")]
         public async Task<IActionResult> Excluir(int id)
         {
             var excluido = await _usuarioRepository.ExcluirAsync(id);

@@ -8,11 +8,13 @@ namespace ZyxLogistics.Api.Services
     {
         private readonly IAuthRepository _authRepository;
         private readonly IPasswordService _passwordService;
+        private readonly ITokenService _tokenService;
 
-        public AuthService(IAuthRepository authRepository, IPasswordService passwordService)
+        public AuthService(IAuthRepository authRepository, IPasswordService passwordService, ITokenService tokenService)
         {
             _authRepository = authRepository;
             _passwordService = passwordService;
+            _tokenService = tokenService;
         }
 
         public async Task<PrimeiroAcessoResponse?> VerificarPrimeiroAcessoAsync(string email)
@@ -74,6 +76,7 @@ namespace ZyxLogistics.Api.Services
         private async Task<AuthUsuarioResponse> CreateResponseAsync(AuthUsuario usuario)
         {
             var permissoes = await _authRepository.ListarPermissoesAsync(usuario.Id);
+            var token = _tokenService.GenerateToken(usuario, permissoes);
 
             return new AuthUsuarioResponse
             {
@@ -83,6 +86,8 @@ namespace ZyxLogistics.Api.Services
                 PerfilId = usuario.PerfilId,
                 PerfilDescricao = usuario.PerfilDescricao,
                 PrimeiroAcesso = usuario.PrimeiroAcesso,
+                Token = token.Token,
+                ExpiraEm = token.ExpiraEm,
                 Permissoes = permissoes
             };
         }

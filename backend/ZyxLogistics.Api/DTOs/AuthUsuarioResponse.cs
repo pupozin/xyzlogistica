@@ -10,6 +10,8 @@ namespace ZyxLogistics.Api.DTOs
         public int PerfilId { get; set; }
         public string PerfilDescricao { get; set; } = string.Empty;
         public bool PrimeiroAcesso { get; set; }
+        public string Token { get; set; } = string.Empty;
+        public DateTime ExpiraEm { get; set; }
         public IReadOnlyList<Permissao> Permissoes { get; set; } = [];
     }
 }

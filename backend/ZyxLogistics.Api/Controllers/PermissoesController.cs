@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ZyxLogistics.Api.Repositories;
 
@@ -15,6 +16,7 @@ namespace ZyxLogistics.Api.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = "perfis.visualizar")]
         public async Task<IActionResult> ListarPermissoes()
         {
             var permissoes = await _perfilRepository.ListarPermissoesAsync();
