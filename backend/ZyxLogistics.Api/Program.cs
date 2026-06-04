@@ -1,4 +1,5 @@
 using ZyxLogistics.Api.Database;
+using ZyxLogistics.Api.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -6,6 +7,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<DbConnectionFactory>();
+builder.Services.AddScoped<ITransportadoraRepository, TransportadoraRepository>();
 
 var app = builder.Build();
 

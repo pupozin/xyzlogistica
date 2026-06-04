@@ -1,0 +1,737 @@
+IF DB_ID(N'ZyxLogisticsDb') IS NULL
+BEGIN
+    CREATE DATABASE ZyxLogisticsDb;
+END
+GO
+
+USE ZyxLogisticsDb;
+GO
+
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
+GO
+
+IF OBJECT_ID(N'dbo.Perfil', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Perfil
+    (
+        Id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Perfil PRIMARY KEY,
+        Descricao NVARCHAR(100) NOT NULL,
+        Ativo BIT NOT NULL CONSTRAINT DF_Perfil_Ativo DEFAULT (1),
+        CriadoEm DATETIME2(0) NOT NULL CONSTRAINT DF_Perfil_CriadoEm DEFAULT (SYSDATETIME())
+    );
+
+    CREATE UNIQUE INDEX UX_Perfil_Descricao ON dbo.Perfil(Descricao);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_Perfil_Descricao' AND object_id = OBJECT_ID(N'dbo.Perfil'))
+BEGIN
+    CREATE UNIQUE INDEX UX_Perfil_Descricao ON dbo.Perfil(Descricao);
+END
+GO
+
+IF OBJECT_ID(N'dbo.Usuario', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Usuario
+    (
+        Id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Usuario PRIMARY KEY,
+        Nome NVARCHAR(150) NOT NULL,
+        Email NVARCHAR(150) NOT NULL,
+        Senha NVARCHAR(255) NOT NULL,
+        PerfilId INT NOT NULL,
+        Ativo BIT NOT NULL CONSTRAINT DF_Usuario_Ativo DEFAULT (1),
+        CriadoEm DATETIME2(0) NOT NULL CONSTRAINT DF_Usuario_CriadoEm DEFAULT (SYSDATETIME()),
+        AtualizadoEm DATETIME2(0) NULL,
+        CONSTRAINT FK_Usuario_Perfil FOREIGN KEY (PerfilId) REFERENCES dbo.Perfil(Id)
+    );
+
+    CREATE UNIQUE INDEX UX_Usuario_Email ON dbo.Usuario(Email);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_Usuario_Email' AND object_id = OBJECT_ID(N'dbo.Usuario'))
+BEGIN
+    CREATE UNIQUE INDEX UX_Usuario_Email ON dbo.Usuario(Email);
+END
+GO
+
+IF OBJECT_ID(N'dbo.Permissao', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Permissao
+    (
+        Id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Permissao PRIMARY KEY,
+        Codigo NVARCHAR(100) NOT NULL,
+        Descricao NVARCHAR(150) NOT NULL,
+        Ativo BIT NOT NULL CONSTRAINT DF_Permissao_Ativo DEFAULT (1)
+    );
+
+    CREATE UNIQUE INDEX UX_Permissao_Codigo ON dbo.Permissao(Codigo);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_Permissao_Codigo' AND object_id = OBJECT_ID(N'dbo.Permissao'))
+BEGIN
+    CREATE UNIQUE INDEX UX_Permissao_Codigo ON dbo.Permissao(Codigo);
+END
+GO
+
+IF OBJECT_ID(N'dbo.PerfilPermissao', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.PerfilPermissao
+    (
+        PerfilId INT NOT NULL,
+        PermissaoId INT NOT NULL,
+        CONSTRAINT PK_PerfilPermissao PRIMARY KEY (PerfilId, PermissaoId),
+        CONSTRAINT FK_PerfilPermissao_Perfil FOREIGN KEY (PerfilId) REFERENCES dbo.Perfil(Id),
+        CONSTRAINT FK_PerfilPermissao_Permissao FOREIGN KEY (PermissaoId) REFERENCES dbo.Permissao(Id)
+    );
+END
+GO
+
+IF OBJECT_ID(N'dbo.Transportadora', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Transportadora
+    (
+        Id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Transportadora PRIMARY KEY,
+        Nome NVARCHAR(150) NOT NULL,
+        Cnpj VARCHAR(20) NOT NULL,
+        Ativo BIT NOT NULL CONSTRAINT DF_Transportadora_Ativo DEFAULT (1),
+        CriadoEm DATETIME2(0) NOT NULL CONSTRAINT DF_Transportadora_CriadoEm DEFAULT (SYSDATETIME()),
+        AtualizadoEm DATETIME2(0) NULL
+    );
+
+    CREATE UNIQUE INDEX UX_Transportadora_Cnpj
+        ON dbo.Transportadora(Cnpj)
+        WHERE Ativo = 1;
+END
+GO
+
+IF EXISTS
+(
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'UX_Transportadora_Cnpj'
+      AND object_id = OBJECT_ID(N'dbo.Transportadora')
+      AND has_filter = 0
+)
+BEGIN
+    DROP INDEX UX_Transportadora_Cnpj ON dbo.Transportadora;
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_Transportadora_Cnpj' AND object_id = OBJECT_ID(N'dbo.Transportadora'))
+BEGIN
+    CREATE UNIQUE INDEX UX_Transportadora_Cnpj
+        ON dbo.Transportadora(Cnpj)
+        WHERE Ativo = 1;
+END
+GO
+
+IF OBJECT_ID(N'dbo.Operacao', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Operacao
+    (
+        Id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Operacao PRIMARY KEY,
+        Descricao NVARCHAR(50) NOT NULL,
+        Ativo BIT NOT NULL CONSTRAINT DF_Operacao_Ativo DEFAULT (1)
+    );
+
+    CREATE UNIQUE INDEX UX_Operacao_Descricao ON dbo.Operacao(Descricao);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_Operacao_Descricao' AND object_id = OBJECT_ID(N'dbo.Operacao'))
+BEGIN
+    CREATE UNIQUE INDEX UX_Operacao_Descricao ON dbo.Operacao(Descricao);
+END
+GO
+
+IF OBJECT_ID(N'dbo.Status', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Status
+    (
+        Id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Status PRIMARY KEY,
+        Descricao NVARCHAR(50) NOT NULL,
+        Ativo BIT NOT NULL CONSTRAINT DF_Status_Ativo DEFAULT (1)
+    );
+
+    CREATE UNIQUE INDEX UX_Status_Descricao ON dbo.Status(Descricao);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_Status_Descricao' AND object_id = OBJECT_ID(N'dbo.Status'))
+BEGIN
+    CREATE UNIQUE INDEX UX_Status_Descricao ON dbo.Status(Descricao);
+END
+GO
+
+IF OBJECT_ID(N'dbo.Veiculo', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Veiculo
+    (
+        Id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Veiculo PRIMARY KEY,
+        Placa VARCHAR(10) NOT NULL,
+        TipoVeiculo NVARCHAR(80) NOT NULL,
+        TransportadoraId INT NOT NULL,
+        Ativo BIT NOT NULL CONSTRAINT DF_Veiculo_Ativo DEFAULT (1),
+        CriadoEm DATETIME2(0) NOT NULL CONSTRAINT DF_Veiculo_CriadoEm DEFAULT (SYSDATETIME()),
+        AtualizadoEm DATETIME2(0) NULL,
+        CONSTRAINT FK_Veiculo_Transportadora FOREIGN KEY (TransportadoraId) REFERENCES dbo.Transportadora(Id)
+    );
+
+    CREATE UNIQUE INDEX UX_Veiculo_Placa ON dbo.Veiculo(Placa);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_Veiculo_Placa' AND object_id = OBJECT_ID(N'dbo.Veiculo'))
+BEGIN
+    CREATE UNIQUE INDEX UX_Veiculo_Placa ON dbo.Veiculo(Placa);
+END
+GO
+
+IF OBJECT_ID(N'dbo.Motorista', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Motorista
+    (
+        Id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Motorista PRIMARY KEY,
+        Nome NVARCHAR(150) NOT NULL,
+        Cnh VARCHAR(30) NOT NULL,
+        Ativo BIT NOT NULL CONSTRAINT DF_Motorista_Ativo DEFAULT (1),
+        CriadoEm DATETIME2(0) NOT NULL CONSTRAINT DF_Motorista_CriadoEm DEFAULT (SYSDATETIME()),
+        AtualizadoEm DATETIME2(0) NULL
+    );
+
+    CREATE UNIQUE INDEX UX_Motorista_Cnh ON dbo.Motorista(Cnh);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_Motorista_Cnh' AND object_id = OBJECT_ID(N'dbo.Motorista'))
+BEGIN
+    CREATE UNIQUE INDEX UX_Motorista_Cnh ON dbo.Motorista(Cnh);
+END
+GO
+
+IF OBJECT_ID(N'dbo.ConfiguracaoAgendamento', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.ConfiguracaoAgendamento
+    (
+        Id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_ConfiguracaoAgendamento PRIMARY KEY,
+        IntervaloMinutos INT NOT NULL,
+        HoraInicio TIME(0) NOT NULL,
+        HoraFim TIME(0) NOT NULL,
+        Ativo BIT NOT NULL CONSTRAINT DF_ConfiguracaoAgendamento_Ativo DEFAULT (1),
+        CriadoEm DATETIME2(0) NOT NULL CONSTRAINT DF_ConfiguracaoAgendamento_CriadoEm DEFAULT (SYSDATETIME()),
+        AtualizadoEm DATETIME2(0) NULL,
+        CONSTRAINT CK_ConfiguracaoAgendamento_Intervalo CHECK (IntervaloMinutos > 0),
+        CONSTRAINT CK_ConfiguracaoAgendamento_Horario CHECK (HoraInicio < HoraFim)
+    );
+
+    CREATE UNIQUE INDEX UX_ConfiguracaoAgendamento_Ativa
+        ON dbo.ConfiguracaoAgendamento(Ativo)
+        WHERE Ativo = 1;
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_ConfiguracaoAgendamento_Ativa' AND object_id = OBJECT_ID(N'dbo.ConfiguracaoAgendamento'))
+BEGIN
+    CREATE UNIQUE INDEX UX_ConfiguracaoAgendamento_Ativa
+        ON dbo.ConfiguracaoAgendamento(Ativo)
+        WHERE Ativo = 1;
+END
+GO
+
+IF OBJECT_ID(N'dbo.Produto', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Produto
+    (
+        Id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Produto PRIMARY KEY,
+        Descricao NVARCHAR(150) NOT NULL,
+        Ativo BIT NOT NULL CONSTRAINT DF_Produto_Ativo DEFAULT (1),
+        CriadoEm DATETIME2(0) NOT NULL CONSTRAINT DF_Produto_CriadoEm DEFAULT (SYSDATETIME()),
+        AtualizadoEm DATETIME2(0) NULL
+    );
+
+    CREATE UNIQUE INDEX UX_Produto_Descricao ON dbo.Produto(Descricao);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_Produto_Descricao' AND object_id = OBJECT_ID(N'dbo.Produto'))
+BEGIN
+    CREATE UNIQUE INDEX UX_Produto_Descricao ON dbo.Produto(Descricao);
+END
+GO
+
+IF OBJECT_ID(N'dbo.Agendamento', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Agendamento
+    (
+        Id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Agendamento PRIMARY KEY,
+        OperacaoId INT NOT NULL,
+        StatusId INT NOT NULL,
+        VeiculoId INT NOT NULL,
+        MotoristaId INT NOT NULL,
+        DataHoraAgendada DATETIME2(0) NOT NULL,
+        DataHoraChegada DATETIME2(0) NULL,
+        DataHoraDoca DATETIME2(0) NULL,
+        DataHoraFinalizado DATETIME2(0) NULL,
+        CriadoEm DATETIME2(0) NOT NULL CONSTRAINT DF_Agendamento_CriadoEm DEFAULT (SYSDATETIME()),
+        AtualizadoEm DATETIME2(0) NULL,
+        CONSTRAINT FK_Agendamento_Operacao FOREIGN KEY (OperacaoId) REFERENCES dbo.Operacao(Id),
+        CONSTRAINT FK_Agendamento_Status FOREIGN KEY (StatusId) REFERENCES dbo.Status(Id),
+        CONSTRAINT FK_Agendamento_Veiculo FOREIGN KEY (VeiculoId) REFERENCES dbo.Veiculo(Id),
+        CONSTRAINT FK_Agendamento_Motorista FOREIGN KEY (MotoristaId) REFERENCES dbo.Motorista(Id)
+    );
+
+    CREATE INDEX IX_Agendamento_DataHoraAgendada ON dbo.Agendamento(DataHoraAgendada);
+
+    CREATE UNIQUE INDEX UX_Agendamento_Horario_Ativo
+        ON dbo.Agendamento(DataHoraAgendada)
+        WHERE StatusId IN (1, 2, 3);
+
+    CREATE UNIQUE INDEX UX_Agendamento_Motorista_Ativo
+        ON dbo.Agendamento(MotoristaId)
+        WHERE StatusId IN (1, 2, 3);
+
+    CREATE UNIQUE INDEX UX_Agendamento_Veiculo_Ativo
+        ON dbo.Agendamento(VeiculoId)
+        WHERE StatusId IN (1, 2, 3);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Agendamento_DataHoraAgendada' AND object_id = OBJECT_ID(N'dbo.Agendamento'))
+BEGIN
+    CREATE INDEX IX_Agendamento_DataHoraAgendada ON dbo.Agendamento(DataHoraAgendada);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_Agendamento_Horario_Ativo' AND object_id = OBJECT_ID(N'dbo.Agendamento'))
+BEGIN
+    CREATE UNIQUE INDEX UX_Agendamento_Horario_Ativo
+        ON dbo.Agendamento(DataHoraAgendada)
+        WHERE StatusId IN (1, 2, 3);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_Agendamento_Motorista_Ativo' AND object_id = OBJECT_ID(N'dbo.Agendamento'))
+BEGIN
+    CREATE UNIQUE INDEX UX_Agendamento_Motorista_Ativo
+        ON dbo.Agendamento(MotoristaId)
+        WHERE StatusId IN (1, 2, 3);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_Agendamento_Veiculo_Ativo' AND object_id = OBJECT_ID(N'dbo.Agendamento'))
+BEGIN
+    CREATE UNIQUE INDEX UX_Agendamento_Veiculo_Ativo
+        ON dbo.Agendamento(VeiculoId)
+        WHERE StatusId IN (1, 2, 3);
+END
+GO
+
+IF OBJECT_ID(N'dbo.OperacaoItem', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.OperacaoItem
+    (
+        Id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_OperacaoItem PRIMARY KEY,
+        AgendamentoId INT NOT NULL,
+        ProdutoId INT NOT NULL,
+        Quantidade DECIMAL(18,3) NOT NULL,
+        CriadoEm DATETIME2(0) NOT NULL CONSTRAINT DF_OperacaoItem_CriadoEm DEFAULT (SYSDATETIME()),
+        CONSTRAINT FK_OperacaoItem_Agendamento FOREIGN KEY (AgendamentoId) REFERENCES dbo.Agendamento(Id),
+        CONSTRAINT FK_OperacaoItem_Produto FOREIGN KEY (ProdutoId) REFERENCES dbo.Produto(Id),
+        CONSTRAINT CK_OperacaoItem_Quantidade CHECK (Quantidade > 0)
+    );
+
+    CREATE INDEX IX_OperacaoItem_AgendamentoId ON dbo.OperacaoItem(AgendamentoId);
+    CREATE UNIQUE INDEX UX_OperacaoItem_Agendamento_Produto ON dbo.OperacaoItem(AgendamentoId, ProdutoId);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_OperacaoItem_AgendamentoId' AND object_id = OBJECT_ID(N'dbo.OperacaoItem'))
+BEGIN
+    CREATE INDEX IX_OperacaoItem_AgendamentoId ON dbo.OperacaoItem(AgendamentoId);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_OperacaoItem_Agendamento_Produto' AND object_id = OBJECT_ID(N'dbo.OperacaoItem'))
+BEGIN
+    CREATE UNIQUE INDEX UX_OperacaoItem_Agendamento_Produto ON dbo.OperacaoItem(AgendamentoId, ProdutoId);
+END
+GO
+
+IF OBJECT_ID(N'dbo.Inventario', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Inventario
+    (
+        Id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Inventario PRIMARY KEY,
+        ProdutoId INT NOT NULL,
+        QuantidadeAtual DECIMAL(18,3) NOT NULL CONSTRAINT DF_Inventario_QuantidadeAtual DEFAULT (0),
+        DataUltimaAtualizacao DATETIME2(0) NOT NULL CONSTRAINT DF_Inventario_DataUltimaAtualizacao DEFAULT (SYSDATETIME()),
+        CONSTRAINT FK_Inventario_Produto FOREIGN KEY (ProdutoId) REFERENCES dbo.Produto(Id),
+        CONSTRAINT CK_Inventario_QuantidadeAtual CHECK (QuantidadeAtual >= 0)
+    );
+
+    CREATE UNIQUE INDEX UX_Inventario_ProdutoId ON dbo.Inventario(ProdutoId);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_Inventario_ProdutoId' AND object_id = OBJECT_ID(N'dbo.Inventario'))
+BEGIN
+    CREATE UNIQUE INDEX UX_Inventario_ProdutoId ON dbo.Inventario(ProdutoId);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM dbo.Perfil WHERE Id IN (1, 2, 3))
+BEGIN
+    SET IDENTITY_INSERT dbo.Perfil ON;
+
+    INSERT INTO dbo.Perfil (Id, Descricao, Ativo)
+    VALUES
+        (1, N'Administrador', 1),
+        (2, N'Operador', 1),
+        (3, N'Consulta', 1);
+
+    SET IDENTITY_INSERT dbo.Perfil OFF;
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM dbo.Operacao WHERE Id IN (1, 2))
+BEGIN
+    SET IDENTITY_INSERT dbo.Operacao ON;
+
+    INSERT INTO dbo.Operacao (Id, Descricao, Ativo)
+    VALUES
+        (1, N'Inbound', 1),
+        (2, N'Outbound', 1);
+
+    SET IDENTITY_INSERT dbo.Operacao OFF;
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM dbo.Status WHERE Id IN (1, 2, 3, 4, 5))
+BEGIN
+    SET IDENTITY_INSERT dbo.Status ON;
+
+    INSERT INTO dbo.Status (Id, Descricao, Ativo)
+    VALUES
+        (1, N'Agendado', 1),
+        (2, N'CheckInRealizado', 1),
+        (3, N'EmDoca', 1),
+        (4, N'Finalizado', 1),
+        (5, N'Cancelado', 1);
+
+    SET IDENTITY_INSERT dbo.Status OFF;
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM dbo.ConfiguracaoAgendamento WHERE Ativo = 1)
+BEGIN
+    INSERT INTO dbo.ConfiguracaoAgendamento (IntervaloMinutos, HoraInicio, HoraFim, Ativo)
+    VALUES (30, '08:00', '18:00', 1);
+END
+GO
+
+MERGE dbo.Permissao AS alvo
+USING
+(
+    VALUES
+        (N'usuarios.visualizar', N'Visualizar usuarios'),
+        (N'usuarios.criar', N'Criar usuarios'),
+        (N'usuarios.editar', N'Editar usuarios'),
+        (N'usuarios.excluir', N'Excluir usuarios'),
+        (N'perfis.visualizar', N'Visualizar perfis'),
+        (N'perfis.editar_permissoes', N'Editar permissoes dos perfis'),
+        (N'transportadoras.visualizar', N'Visualizar transportadoras'),
+        (N'transportadoras.criar', N'Criar transportadoras'),
+        (N'transportadoras.editar', N'Editar transportadoras'),
+        (N'transportadoras.excluir', N'Excluir transportadoras'),
+        (N'veiculos.visualizar', N'Visualizar veiculos'),
+        (N'veiculos.criar', N'Criar veiculos'),
+        (N'veiculos.editar', N'Editar veiculos'),
+        (N'veiculos.excluir', N'Excluir veiculos'),
+        (N'motoristas.visualizar', N'Visualizar motoristas'),
+        (N'motoristas.criar', N'Criar motoristas'),
+        (N'motoristas.editar', N'Editar motoristas'),
+        (N'motoristas.excluir', N'Excluir motoristas'),
+        (N'produtos.visualizar', N'Visualizar produtos'),
+        (N'produtos.criar', N'Criar produtos'),
+        (N'produtos.editar', N'Editar produtos'),
+        (N'produtos.excluir', N'Excluir produtos'),
+        (N'agendamentos.visualizar', N'Visualizar agendamentos'),
+        (N'agendamentos.criar', N'Criar agendamentos'),
+        (N'agendamentos.editar', N'Editar agendamentos'),
+        (N'agendamentos.cancelar', N'Cancelar agendamentos'),
+        (N'checkin.realizar', N'Realizar check-in'),
+        (N'operacoes.visualizar', N'Visualizar operacoes'),
+        (N'operacoes.enviar_doca', N'Enviar operacao para doca'),
+        (N'operacoes.finalizar', N'Finalizar operacao'),
+        (N'inventario.visualizar', N'Visualizar inventario'),
+        (N'configuracoes.visualizar', N'Visualizar configuracoes'),
+        (N'configuracoes.editar', N'Editar configuracoes'),
+        (N'relatorios.visualizar', N'Visualizar relatorios')
+) AS origem (Codigo, Descricao)
+ON alvo.Codigo = origem.Codigo
+WHEN MATCHED THEN
+    UPDATE SET
+        alvo.Descricao = origem.Descricao,
+        alvo.Ativo = 1
+WHEN NOT MATCHED THEN
+    INSERT (Codigo, Descricao, Ativo)
+    VALUES (origem.Codigo, origem.Descricao, 1);
+GO
+
+INSERT INTO dbo.PerfilPermissao (PerfilId, PermissaoId)
+SELECT 1, p.Id
+FROM dbo.Permissao p
+WHERE NOT EXISTS
+(
+    SELECT 1
+    FROM dbo.PerfilPermissao pp
+    WHERE pp.PerfilId = 1
+      AND pp.PermissaoId = p.Id
+);
+GO
+
+INSERT INTO dbo.PerfilPermissao (PerfilId, PermissaoId)
+SELECT 2, p.Id
+FROM dbo.Permissao p
+WHERE p.Codigo IN
+(
+    N'transportadoras.visualizar',
+    N'veiculos.visualizar',
+    N'veiculos.criar',
+    N'veiculos.editar',
+    N'motoristas.visualizar',
+    N'motoristas.criar',
+    N'motoristas.editar',
+    N'produtos.visualizar',
+    N'produtos.criar',
+    N'produtos.editar',
+    N'agendamentos.visualizar',
+    N'agendamentos.criar',
+    N'agendamentos.editar',
+    N'agendamentos.cancelar',
+    N'checkin.realizar',
+    N'operacoes.visualizar',
+    N'operacoes.enviar_doca',
+    N'operacoes.finalizar',
+    N'inventario.visualizar'
+)
+AND NOT EXISTS
+(
+    SELECT 1
+    FROM dbo.PerfilPermissao pp
+    WHERE pp.PerfilId = 2
+      AND pp.PermissaoId = p.Id
+);
+GO
+
+INSERT INTO dbo.PerfilPermissao (PerfilId, PermissaoId)
+SELECT 3, p.Id
+FROM dbo.Permissao p
+WHERE p.Codigo IN
+(
+    N'transportadoras.visualizar',
+    N'veiculos.visualizar',
+    N'motoristas.visualizar',
+    N'produtos.visualizar',
+    N'agendamentos.visualizar',
+    N'operacoes.visualizar',
+    N'inventario.visualizar',
+    N'relatorios.visualizar'
+)
+AND NOT EXISTS
+(
+    SELECT 1
+    FROM dbo.PerfilPermissao pp
+    WHERE pp.PerfilId = 3
+      AND pp.PermissaoId = p.Id
+);
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Perfil_Listar
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT Id, Descricao, Ativo
+    FROM dbo.Perfil
+    WHERE Ativo = 1
+    ORDER BY Descricao;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Permissao_Listar
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT Id, Codigo, Descricao, Ativo
+    FROM dbo.Permissao
+    WHERE Ativo = 1
+    ORDER BY Codigo;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Permissao_ListarPorPerfil
+    @PerfilId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        p.Id,
+        p.Codigo,
+        p.Descricao,
+        p.Ativo
+    FROM dbo.PerfilPermissao pp
+    INNER JOIN dbo.Permissao p ON p.Id = pp.PermissaoId
+    WHERE pp.PerfilId = @PerfilId
+      AND p.Ativo = 1
+    ORDER BY p.Codigo;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Operacao_Listar
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT Id, Descricao, Ativo
+    FROM dbo.Operacao
+    WHERE Ativo = 1
+    ORDER BY Id;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Status_Listar
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT Id, Descricao, Ativo
+    FROM dbo.Status
+    WHERE Ativo = 1
+    ORDER BY Id;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_ConfiguracaoAgendamento_ObterAtiva
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT TOP (1)
+        Id,
+        IntervaloMinutos,
+        HoraInicio,
+        HoraFim,
+        Ativo
+    FROM dbo.ConfiguracaoAgendamento
+    WHERE Ativo = 1
+    ORDER BY Id DESC;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Transportadora_Listar
+    @Nome NVARCHAR(150) = NULL,
+    @Cnpj VARCHAR(20) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        Id,
+        Nome,
+        Cnpj,
+        Ativo,
+        CriadoEm,
+        AtualizadoEm
+    FROM dbo.Transportadora
+    WHERE Ativo = 1
+      AND (@Nome IS NULL OR Nome LIKE '%' + @Nome + '%')
+      AND (@Cnpj IS NULL OR Cnpj LIKE '%' + @Cnpj + '%')
+    ORDER BY Nome;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Transportadora_ObterPorId
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        Id,
+        Nome,
+        Cnpj,
+        Ativo,
+        CriadoEm,
+        AtualizadoEm
+    FROM dbo.Transportadora
+    WHERE Id = @Id
+      AND Ativo = 1;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Transportadora_Inserir
+    @Nome NVARCHAR(150),
+    @Cnpj VARCHAR(20)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF EXISTS (SELECT 1 FROM dbo.Transportadora WHERE Cnpj = @Cnpj AND Ativo = 1)
+    BEGIN
+        THROW 50001, 'Ja existe uma transportadora cadastrada com este CNPJ.', 1;
+    END
+
+    INSERT INTO dbo.Transportadora (Nome, Cnpj)
+    VALUES (@Nome, @Cnpj);
+
+    SELECT CAST(SCOPE_IDENTITY() AS INT) AS Id;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Transportadora_Atualizar
+    @Id INT,
+    @Nome NVARCHAR(150),
+    @Cnpj VARCHAR(20)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF EXISTS (SELECT 1 FROM dbo.Transportadora WHERE Cnpj = @Cnpj AND Id <> @Id AND Ativo = 1)
+    BEGIN
+        THROW 50001, 'Ja existe uma transportadora cadastrada com este CNPJ.', 1;
+    END
+
+    UPDATE dbo.Transportadora
+    SET
+        Nome = @Nome,
+        Cnpj = @Cnpj,
+        AtualizadoEm = SYSDATETIME()
+    WHERE Id = @Id
+      AND Ativo = 1;
+
+    SELECT @@ROWCOUNT AS LinhasAfetadas;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Transportadora_Excluir
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE dbo.Transportadora
+    SET
+        Ativo = 0,
+        AtualizadoEm = SYSDATETIME()
+    WHERE Id = @Id
+      AND Ativo = 1;
+
+    SELECT @@ROWCOUNT AS LinhasAfetadas;
+END
+GO
