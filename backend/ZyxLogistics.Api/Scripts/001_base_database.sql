@@ -914,6 +914,91 @@ BEGIN
 END
 GO
 
+CREATE OR ALTER PROCEDURE dbo.sp_Usuario_VerificarPrimeiroAcesso
+    @Email NVARCHAR(150)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        u.Id,
+        u.Nome,
+        u.Email,
+        u.PerfilId,
+        p.Descricao AS PerfilDescricao,
+        CAST(CASE WHEN u.Senha IS NULL THEN 1 ELSE 0 END AS BIT) AS PrimeiroAcesso,
+        u.Ativo
+    FROM dbo.Usuario u
+    INNER JOIN dbo.Perfil p ON p.Id = u.PerfilId
+    WHERE u.Email = @Email
+      AND u.Ativo = 1
+      AND p.Ativo = 1;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Usuario_DefinirSenhaPrimeiroAcesso
+    @Email NVARCHAR(150),
+    @Senha NVARCHAR(255)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE dbo.Usuario
+    SET
+        Senha = @Senha,
+        AtualizadoEm = SYSDATETIME()
+    WHERE Email = @Email
+      AND Ativo = 1
+      AND Senha IS NULL;
+
+    SELECT @@ROWCOUNT AS LinhasAfetadas;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Usuario_Login
+    @Email NVARCHAR(150)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        u.Id,
+        u.Nome,
+        u.Email,
+        u.Senha,
+        u.PerfilId,
+        p.Descricao AS PerfilDescricao,
+        CAST(CASE WHEN u.Senha IS NULL THEN 1 ELSE 0 END AS BIT) AS PrimeiroAcesso,
+        u.Ativo
+    FROM dbo.Usuario u
+    INNER JOIN dbo.Perfil p ON p.Id = u.PerfilId
+    WHERE u.Email = @Email
+      AND u.Ativo = 1
+      AND p.Ativo = 1;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Usuario_ListarPermissoes
+    @UsuarioId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        p.Id,
+        p.Codigo,
+        p.Descricao,
+        p.Ativo
+    FROM dbo.Usuario u
+    INNER JOIN dbo.PerfilPermissao pp ON pp.PerfilId = u.PerfilId
+    INNER JOIN dbo.Permissao p ON p.Id = pp.PermissaoId
+    WHERE u.Id = @UsuarioId
+      AND u.Ativo = 1
+      AND p.Ativo = 1
+    ORDER BY p.Codigo;
+END
+GO
+
 CREATE OR ALTER PROCEDURE dbo.sp_Permissao_Listar
 AS
 BEGIN
