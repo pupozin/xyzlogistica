@@ -11,6 +11,12 @@ SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;
 GO
 
+IF TYPE_ID(N'dbo.IntIdList') IS NULL
+BEGIN
+    EXEC(N'CREATE TYPE dbo.IntIdList AS TABLE (Id INT NOT NULL PRIMARY KEY);');
+END
+GO
+
 IF OBJECT_ID(N'dbo.Perfil', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.Perfil
@@ -613,6 +619,144 @@ BEGIN
 END
 GO
 
+CREATE OR ALTER PROCEDURE dbo.sp_Perfil_ObterPorId
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT Id, Descricao, Ativo
+    FROM dbo.Perfil
+    WHERE Id = @Id
+      AND Ativo = 1;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Perfil_Inserir
+    @Descricao NVARCHAR(100),
+    @Permissoes dbo.IntIdList READONLY
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    IF EXISTS (SELECT 1 FROM dbo.Perfil WHERE Descricao = @Descricao AND Ativo = 1)
+    BEGIN
+        THROW 50005, 'Ja existe um perfil ativo com esta descricao.', 1;
+    END
+
+    IF EXISTS
+    (
+        SELECT 1
+        FROM @Permissoes ids
+        LEFT JOIN dbo.Permissao p ON p.Id = ids.Id AND p.Ativo = 1
+        WHERE p.Id IS NULL
+    )
+    BEGIN
+        THROW 50004, 'Uma ou mais permissoes informadas nao existem ou estao inativas.', 1;
+    END
+
+    BEGIN TRANSACTION;
+
+    INSERT INTO dbo.Perfil (Descricao)
+    VALUES (@Descricao);
+
+    DECLARE @PerfilId INT = CAST(SCOPE_IDENTITY() AS INT);
+
+    INSERT INTO dbo.PerfilPermissao (PerfilId, PermissaoId)
+    SELECT @PerfilId, Id
+    FROM @Permissoes;
+
+    COMMIT TRANSACTION;
+
+    SELECT Id, Descricao, Ativo
+    FROM dbo.Perfil
+    WHERE Id = @PerfilId;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Perfil_Atualizar
+    @Id INT,
+    @Descricao NVARCHAR(100),
+    @Permissoes dbo.IntIdList READONLY
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.Perfil WHERE Id = @Id AND Ativo = 1)
+    BEGIN
+        THROW 50004, 'Perfil nao encontrado ou inativo.', 1;
+    END
+
+    IF EXISTS (SELECT 1 FROM dbo.Perfil WHERE Descricao = @Descricao AND Id <> @Id AND Ativo = 1)
+    BEGIN
+        THROW 50005, 'Ja existe um perfil ativo com esta descricao.', 1;
+    END
+
+    IF EXISTS
+    (
+        SELECT 1
+        FROM @Permissoes ids
+        LEFT JOIN dbo.Permissao p ON p.Id = ids.Id AND p.Ativo = 1
+        WHERE p.Id IS NULL
+    )
+    BEGIN
+        THROW 50004, 'Uma ou mais permissoes informadas nao existem ou estao inativas.', 1;
+    END
+
+    BEGIN TRANSACTION;
+
+    UPDATE dbo.Perfil
+    SET Descricao = @Descricao
+    WHERE Id = @Id
+      AND Ativo = 1;
+
+    DELETE FROM dbo.PerfilPermissao
+    WHERE PerfilId = @Id;
+
+    INSERT INTO dbo.PerfilPermissao (PerfilId, PermissaoId)
+    SELECT @Id, Id
+    FROM @Permissoes;
+
+    COMMIT TRANSACTION;
+
+    SELECT Id, Descricao, Ativo
+    FROM dbo.Perfil
+    WHERE Id = @Id;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Perfil_Excluir
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    IF EXISTS (SELECT 1 FROM dbo.Usuario WHERE PerfilId = @Id AND Ativo = 1)
+    BEGIN
+        THROW 50006, 'Nao e possivel excluir um perfil vinculado a usuarios ativos.', 1;
+    END
+
+    BEGIN TRANSACTION;
+
+    DELETE FROM dbo.PerfilPermissao
+    WHERE PerfilId = @Id;
+
+    UPDATE dbo.Perfil
+    SET Ativo = 0
+    WHERE Id = @Id
+      AND Ativo = 1;
+
+    DECLARE @LinhasAfetadas INT = @@ROWCOUNT;
+
+    COMMIT TRANSACTION;
+
+    SELECT @LinhasAfetadas AS LinhasAfetadas;
+END
+GO
+
 CREATE OR ALTER PROCEDURE dbo.sp_Permissao_Listar
 AS
 BEGIN
@@ -630,6 +774,54 @@ CREATE OR ALTER PROCEDURE dbo.sp_Permissao_ListarPorPerfil
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    SELECT
+        p.Id,
+        p.Codigo,
+        p.Descricao,
+        p.Ativo
+    FROM dbo.PerfilPermissao pp
+    INNER JOIN dbo.Permissao p ON p.Id = pp.PermissaoId
+    WHERE pp.PerfilId = @PerfilId
+      AND p.Ativo = 1
+    ORDER BY p.Codigo;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Perfil_AtualizarPermissoes
+    @PerfilId INT,
+    @Permissoes dbo.IntIdList READONLY
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.Perfil WHERE Id = @PerfilId AND Ativo = 1)
+    BEGIN
+        THROW 50004, 'Perfil nao encontrado ou inativo.', 1;
+    END
+
+    IF EXISTS
+    (
+        SELECT 1
+        FROM @Permissoes ids
+        LEFT JOIN dbo.Permissao p ON p.Id = ids.Id AND p.Ativo = 1
+        WHERE p.Id IS NULL
+    )
+    BEGIN
+        THROW 50004, 'Uma ou mais permissoes informadas nao existem ou estao inativas.', 1;
+    END
+
+    BEGIN TRANSACTION;
+
+    DELETE FROM dbo.PerfilPermissao
+    WHERE PerfilId = @PerfilId;
+
+    INSERT INTO dbo.PerfilPermissao (PerfilId, PermissaoId)
+    SELECT @PerfilId, Id
+    FROM @Permissoes;
+
+    COMMIT TRANSACTION;
 
     SELECT
         p.Id,
