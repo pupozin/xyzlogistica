@@ -44,7 +44,7 @@ BEGIN
         Id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Usuario PRIMARY KEY,
         Nome NVARCHAR(150) NOT NULL,
         Email NVARCHAR(150) NOT NULL,
-        Senha NVARCHAR(255) NOT NULL,
+        Senha NVARCHAR(255) NULL,
         PerfilId INT NOT NULL,
         Ativo BIT NOT NULL CONSTRAINT DF_Usuario_Ativo DEFAULT (1),
         CriadoEm DATETIME2(0) NOT NULL CONSTRAINT DF_Usuario_CriadoEm DEFAULT (SYSDATETIME()),
@@ -52,13 +52,43 @@ BEGIN
         CONSTRAINT FK_Usuario_Perfil FOREIGN KEY (PerfilId) REFERENCES dbo.Perfil(Id)
     );
 
-    CREATE UNIQUE INDEX UX_Usuario_Email ON dbo.Usuario(Email);
+    CREATE UNIQUE INDEX UX_Usuario_Email
+        ON dbo.Usuario(Email)
+        WHERE Ativo = 1;
+END
+GO
+
+IF EXISTS
+(
+    SELECT 1
+    FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'dbo.Usuario')
+      AND name = N'Senha'
+      AND is_nullable = 0
+)
+BEGIN
+    ALTER TABLE dbo.Usuario ALTER COLUMN Senha NVARCHAR(255) NULL;
+END
+GO
+
+IF EXISTS
+(
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'UX_Usuario_Email'
+      AND object_id = OBJECT_ID(N'dbo.Usuario')
+      AND has_filter = 0
+)
+BEGIN
+    DROP INDEX UX_Usuario_Email ON dbo.Usuario;
 END
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_Usuario_Email' AND object_id = OBJECT_ID(N'dbo.Usuario'))
 BEGIN
-    CREATE UNIQUE INDEX UX_Usuario_Email ON dbo.Usuario(Email);
+    CREATE UNIQUE INDEX UX_Usuario_Email
+        ON dbo.Usuario(Email)
+        WHERE Ativo = 1;
 END
 GO
 
@@ -754,6 +784,133 @@ BEGIN
     COMMIT TRANSACTION;
 
     SELECT @LinhasAfetadas AS LinhasAfetadas;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Usuario_Listar
+    @Nome NVARCHAR(150) = NULL,
+    @Email NVARCHAR(150) = NULL,
+    @PerfilId INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        u.Id,
+        u.Nome,
+        u.Email,
+        u.PerfilId,
+        p.Descricao AS PerfilDescricao,
+        CAST(CASE WHEN u.Senha IS NULL THEN 1 ELSE 0 END AS BIT) AS PrimeiroAcesso,
+        u.Ativo,
+        u.CriadoEm,
+        u.AtualizadoEm
+    FROM dbo.Usuario u
+    INNER JOIN dbo.Perfil p ON p.Id = u.PerfilId
+    WHERE u.Ativo = 1
+      AND p.Ativo = 1
+      AND (@Nome IS NULL OR u.Nome LIKE '%' + @Nome + '%')
+      AND (@Email IS NULL OR u.Email LIKE '%' + @Email + '%')
+      AND (@PerfilId IS NULL OR u.PerfilId = @PerfilId)
+    ORDER BY u.Nome;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Usuario_ObterPorId
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        u.Id,
+        u.Nome,
+        u.Email,
+        u.PerfilId,
+        p.Descricao AS PerfilDescricao,
+        CAST(CASE WHEN u.Senha IS NULL THEN 1 ELSE 0 END AS BIT) AS PrimeiroAcesso,
+        u.Ativo,
+        u.CriadoEm,
+        u.AtualizadoEm
+    FROM dbo.Usuario u
+    INNER JOIN dbo.Perfil p ON p.Id = u.PerfilId
+    WHERE u.Id = @Id
+      AND u.Ativo = 1
+      AND p.Ativo = 1;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Usuario_Inserir
+    @Nome NVARCHAR(150),
+    @Email NVARCHAR(150),
+    @PerfilId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.Perfil WHERE Id = @PerfilId AND Ativo = 1)
+    BEGIN
+        THROW 50004, 'Perfil nao encontrado ou inativo.', 1;
+    END
+
+    IF EXISTS (SELECT 1 FROM dbo.Usuario WHERE Email = @Email AND Ativo = 1)
+    BEGIN
+        THROW 50001, 'Ja existe um usuario ativo com este email.', 1;
+    END
+
+    INSERT INTO dbo.Usuario (Nome, Email, Senha, PerfilId)
+    VALUES (@Nome, @Email, NULL, @PerfilId);
+
+    SELECT CAST(SCOPE_IDENTITY() AS INT) AS Id;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Usuario_Atualizar
+    @Id INT,
+    @Nome NVARCHAR(150),
+    @Email NVARCHAR(150),
+    @PerfilId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.Perfil WHERE Id = @PerfilId AND Ativo = 1)
+    BEGIN
+        THROW 50004, 'Perfil nao encontrado ou inativo.', 1;
+    END
+
+    IF EXISTS (SELECT 1 FROM dbo.Usuario WHERE Email = @Email AND Id <> @Id AND Ativo = 1)
+    BEGIN
+        THROW 50001, 'Ja existe um usuario ativo com este email.', 1;
+    END
+
+    UPDATE dbo.Usuario
+    SET
+        Nome = @Nome,
+        Email = @Email,
+        PerfilId = @PerfilId,
+        AtualizadoEm = SYSDATETIME()
+    WHERE Id = @Id
+      AND Ativo = 1;
+
+    SELECT @@ROWCOUNT AS LinhasAfetadas;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Usuario_Excluir
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE dbo.Usuario
+    SET
+        Ativo = 0,
+        AtualizadoEm = SYSDATETIME()
+    WHERE Id = @Id
+      AND Ativo = 1;
+
+    SELECT @@ROWCOUNT AS LinhasAfetadas;
 END
 GO
 
