@@ -10,6 +10,7 @@ builder.Services.AddSingleton<DbConnectionFactory>();
 builder.Services.AddScoped<IMotoristaRepository, MotoristaRepository>();
 builder.Services.AddScoped<IProdutoRepository, ProdutoRepository>();
 builder.Services.AddScoped<ITransportadoraRepository, TransportadoraRepository>();
+builder.Services.AddScoped<IVeiculoRepository, VeiculoRepository>();
 
 var app = builder.Build();
 

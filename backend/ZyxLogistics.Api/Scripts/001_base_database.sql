@@ -180,13 +180,30 @@ BEGIN
         CONSTRAINT FK_Veiculo_Transportadora FOREIGN KEY (TransportadoraId) REFERENCES dbo.Transportadora(Id)
     );
 
-    CREATE UNIQUE INDEX UX_Veiculo_Placa ON dbo.Veiculo(Placa);
+    CREATE UNIQUE INDEX UX_Veiculo_Placa
+        ON dbo.Veiculo(Placa)
+        WHERE Ativo = 1;
+END
+GO
+
+IF EXISTS
+(
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'UX_Veiculo_Placa'
+      AND object_id = OBJECT_ID(N'dbo.Veiculo')
+      AND has_filter = 0
+)
+BEGIN
+    DROP INDEX UX_Veiculo_Placa ON dbo.Veiculo;
 END
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_Veiculo_Placa' AND object_id = OBJECT_ID(N'dbo.Veiculo'))
 BEGIN
-    CREATE UNIQUE INDEX UX_Veiculo_Placa ON dbo.Veiculo(Placa);
+    CREATE UNIQUE INDEX UX_Veiculo_Placa
+        ON dbo.Veiculo(Placa)
+        WHERE Ativo = 1;
 END
 GO
 
@@ -957,6 +974,131 @@ BEGIN
     SET NOCOUNT ON;
 
     UPDATE dbo.Produto
+    SET
+        Ativo = 0,
+        AtualizadoEm = SYSDATETIME()
+    WHERE Id = @Id
+      AND Ativo = 1;
+
+    SELECT @@ROWCOUNT AS LinhasAfetadas;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Veiculo_Listar
+    @Placa VARCHAR(10) = NULL,
+    @TipoVeiculo NVARCHAR(80) = NULL,
+    @TransportadoraId INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        v.Id,
+        v.Placa,
+        v.TipoVeiculo,
+        v.TransportadoraId,
+        t.Nome AS TransportadoraNome,
+        v.Ativo,
+        v.CriadoEm,
+        v.AtualizadoEm
+    FROM dbo.Veiculo v
+    INNER JOIN dbo.Transportadora t ON t.Id = v.TransportadoraId
+    WHERE v.Ativo = 1
+      AND t.Ativo = 1
+      AND (@Placa IS NULL OR v.Placa LIKE '%' + @Placa + '%')
+      AND (@TipoVeiculo IS NULL OR v.TipoVeiculo LIKE '%' + @TipoVeiculo + '%')
+      AND (@TransportadoraId IS NULL OR v.TransportadoraId = @TransportadoraId)
+    ORDER BY v.Placa;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Veiculo_ObterPorId
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        v.Id,
+        v.Placa,
+        v.TipoVeiculo,
+        v.TransportadoraId,
+        t.Nome AS TransportadoraNome,
+        v.Ativo,
+        v.CriadoEm,
+        v.AtualizadoEm
+    FROM dbo.Veiculo v
+    INNER JOIN dbo.Transportadora t ON t.Id = v.TransportadoraId
+    WHERE v.Id = @Id
+      AND v.Ativo = 1
+      AND t.Ativo = 1;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Veiculo_Inserir
+    @Placa VARCHAR(10),
+    @TipoVeiculo NVARCHAR(80),
+    @TransportadoraId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.Transportadora WHERE Id = @TransportadoraId AND Ativo = 1)
+    BEGIN
+        THROW 50002, 'Transportadora nao encontrada ou inativa.', 1;
+    END
+
+    IF EXISTS (SELECT 1 FROM dbo.Veiculo WHERE Placa = @Placa AND Ativo = 1)
+    BEGIN
+        THROW 50001, 'Ja existe um veiculo cadastrado com esta placa.', 1;
+    END
+
+    INSERT INTO dbo.Veiculo (Placa, TipoVeiculo, TransportadoraId)
+    VALUES (@Placa, @TipoVeiculo, @TransportadoraId);
+
+    SELECT CAST(SCOPE_IDENTITY() AS INT) AS Id;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Veiculo_Atualizar
+    @Id INT,
+    @Placa VARCHAR(10),
+    @TipoVeiculo NVARCHAR(80),
+    @TransportadoraId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.Transportadora WHERE Id = @TransportadoraId AND Ativo = 1)
+    BEGIN
+        THROW 50002, 'Transportadora nao encontrada ou inativa.', 1;
+    END
+
+    IF EXISTS (SELECT 1 FROM dbo.Veiculo WHERE Placa = @Placa AND Id <> @Id AND Ativo = 1)
+    BEGIN
+        THROW 50001, 'Ja existe um veiculo cadastrado com esta placa.', 1;
+    END
+
+    UPDATE dbo.Veiculo
+    SET
+        Placa = @Placa,
+        TipoVeiculo = @TipoVeiculo,
+        TransportadoraId = @TransportadoraId,
+        AtualizadoEm = SYSDATETIME()
+    WHERE Id = @Id
+      AND Ativo = 1;
+
+    SELECT @@ROWCOUNT AS LinhasAfetadas;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Veiculo_Excluir
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE dbo.Veiculo
     SET
         Ativo = 0,
         AtualizadoEm = SYSDATETIME()
