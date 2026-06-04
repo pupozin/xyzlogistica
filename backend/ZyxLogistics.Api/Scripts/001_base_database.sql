@@ -269,13 +269,30 @@ BEGIN
         AtualizadoEm DATETIME2(0) NULL
     );
 
-    CREATE UNIQUE INDEX UX_Produto_Descricao ON dbo.Produto(Descricao);
+    CREATE UNIQUE INDEX UX_Produto_Descricao
+        ON dbo.Produto(Descricao)
+        WHERE Ativo = 1;
+END
+GO
+
+IF EXISTS
+(
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'UX_Produto_Descricao'
+      AND object_id = OBJECT_ID(N'dbo.Produto')
+      AND has_filter = 0
+)
+BEGIN
+    DROP INDEX UX_Produto_Descricao ON dbo.Produto;
 END
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_Produto_Descricao' AND object_id = OBJECT_ID(N'dbo.Produto'))
 BEGIN
-    CREATE UNIQUE INDEX UX_Produto_Descricao ON dbo.Produto(Descricao);
+    CREATE UNIQUE INDEX UX_Produto_Descricao
+        ON dbo.Produto(Descricao)
+        WHERE Ativo = 1;
 END
 GO
 
@@ -845,6 +862,101 @@ BEGIN
     SET NOCOUNT ON;
 
     UPDATE dbo.Motorista
+    SET
+        Ativo = 0,
+        AtualizadoEm = SYSDATETIME()
+    WHERE Id = @Id
+      AND Ativo = 1;
+
+    SELECT @@ROWCOUNT AS LinhasAfetadas;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Produto_Listar
+    @Descricao NVARCHAR(150) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        Id,
+        Descricao,
+        Ativo,
+        CriadoEm,
+        AtualizadoEm
+    FROM dbo.Produto
+    WHERE Ativo = 1
+      AND (@Descricao IS NULL OR Descricao LIKE '%' + @Descricao + '%')
+    ORDER BY Descricao;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Produto_ObterPorId
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        Id,
+        Descricao,
+        Ativo,
+        CriadoEm,
+        AtualizadoEm
+    FROM dbo.Produto
+    WHERE Id = @Id
+      AND Ativo = 1;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Produto_Inserir
+    @Descricao NVARCHAR(150)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF EXISTS (SELECT 1 FROM dbo.Produto WHERE Descricao = @Descricao AND Ativo = 1)
+    BEGIN
+        THROW 50001, 'Ja existe um produto cadastrado com esta descricao.', 1;
+    END
+
+    INSERT INTO dbo.Produto (Descricao)
+    VALUES (@Descricao);
+
+    SELECT CAST(SCOPE_IDENTITY() AS INT) AS Id;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Produto_Atualizar
+    @Id INT,
+    @Descricao NVARCHAR(150)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF EXISTS (SELECT 1 FROM dbo.Produto WHERE Descricao = @Descricao AND Id <> @Id AND Ativo = 1)
+    BEGIN
+        THROW 50001, 'Ja existe um produto cadastrado com esta descricao.', 1;
+    END
+
+    UPDATE dbo.Produto
+    SET
+        Descricao = @Descricao,
+        AtualizadoEm = SYSDATETIME()
+    WHERE Id = @Id
+      AND Ativo = 1;
+
+    SELECT @@ROWCOUNT AS LinhasAfetadas;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Produto_Excluir
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE dbo.Produto
     SET
         Ativo = 0,
         AtualizadoEm = SYSDATETIME()
