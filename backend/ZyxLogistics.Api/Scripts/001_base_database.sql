@@ -356,6 +356,7 @@ BEGIN
         Id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Agendamento PRIMARY KEY,
         OperacaoId INT NOT NULL,
         StatusId INT NOT NULL,
+        TransportadoraId INT NOT NULL,
         VeiculoId INT NOT NULL,
         MotoristaId INT NOT NULL,
         DataHoraAgendada DATETIME2(0) NOT NULL,
@@ -366,6 +367,7 @@ BEGIN
         AtualizadoEm DATETIME2(0) NULL,
         CONSTRAINT FK_Agendamento_Operacao FOREIGN KEY (OperacaoId) REFERENCES dbo.Operacao(Id),
         CONSTRAINT FK_Agendamento_Status FOREIGN KEY (StatusId) REFERENCES dbo.Status(Id),
+        CONSTRAINT FK_Agendamento_Transportadora FOREIGN KEY (TransportadoraId) REFERENCES dbo.Transportadora(Id),
         CONSTRAINT FK_Agendamento_Veiculo FOREIGN KEY (VeiculoId) REFERENCES dbo.Veiculo(Id),
         CONSTRAINT FK_Agendamento_Motorista FOREIGN KEY (MotoristaId) REFERENCES dbo.Motorista(Id)
     );
@@ -383,6 +385,46 @@ BEGIN
     CREATE UNIQUE INDEX UX_Agendamento_Veiculo_Ativo
         ON dbo.Agendamento(VeiculoId)
         WHERE StatusId IN (1, 2, 3);
+END
+GO
+
+IF COL_LENGTH(N'dbo.Agendamento', N'TransportadoraId') IS NULL
+BEGIN
+    ALTER TABLE dbo.Agendamento ADD TransportadoraId INT NULL;
+END
+GO
+
+UPDATE a
+SET TransportadoraId = v.TransportadoraId
+FROM dbo.Agendamento a
+INNER JOIN dbo.Veiculo v ON v.Id = a.VeiculoId
+WHERE a.TransportadoraId IS NULL;
+GO
+
+IF EXISTS
+(
+    SELECT 1
+    FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'dbo.Agendamento')
+      AND name = N'TransportadoraId'
+      AND is_nullable = 1
+)
+AND NOT EXISTS (SELECT 1 FROM dbo.Agendamento WHERE TransportadoraId IS NULL)
+BEGIN
+    ALTER TABLE dbo.Agendamento ALTER COLUMN TransportadoraId INT NOT NULL;
+END
+GO
+
+IF NOT EXISTS
+(
+    SELECT 1
+    FROM sys.foreign_keys
+    WHERE name = N'FK_Agendamento_Transportadora'
+      AND parent_object_id = OBJECT_ID(N'dbo.Agendamento')
+)
+BEGIN
+    ALTER TABLE dbo.Agendamento
+    ADD CONSTRAINT FK_Agendamento_Transportadora FOREIGN KEY (TransportadoraId) REFERENCES dbo.Transportadora(Id);
 END
 GO
 
@@ -1109,6 +1151,66 @@ BEGIN
 END
 GO
 
+CREATE OR ALTER PROCEDURE dbo.sp_Operacao_ListarAbas
+    @OperacaoId INT,
+    @Busca NVARCHAR(150) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.Operacao WHERE Id = @OperacaoId AND Ativo = 1)
+    BEGIN
+        THROW 50004, 'Operacao nao encontrada ou inativa.', 1;
+    END
+
+    SELECT
+        a.Id,
+        a.OperacaoId,
+        o.Descricao AS OperacaoDescricao,
+        a.StatusId,
+        s.Descricao AS StatusDescricao,
+        a.VeiculoId,
+        v.Placa AS VeiculoPlaca,
+        v.TipoVeiculo,
+        a.TransportadoraId,
+        t.Nome AS TransportadoraNome,
+        a.MotoristaId,
+        m.Nome AS MotoristaNome,
+        m.Cnh AS MotoristaCnh,
+        a.DataHoraAgendada,
+        a.DataHoraChegada,
+        a.DataHoraDoca,
+        a.DataHoraFinalizado,
+        a.CriadoEm,
+        a.AtualizadoEm
+    FROM dbo.Agendamento a
+    INNER JOIN dbo.Operacao o ON o.Id = a.OperacaoId
+    INNER JOIN dbo.Status s ON s.Id = a.StatusId
+    INNER JOIN dbo.Veiculo v ON v.Id = a.VeiculoId
+    INNER JOIN dbo.Transportadora t ON t.Id = a.TransportadoraId
+    INNER JOIN dbo.Motorista m ON m.Id = a.MotoristaId
+    WHERE a.OperacaoId = @OperacaoId
+      AND a.StatusId IN (2, 3, 4)
+      AND
+      (
+          @Busca IS NULL
+          OR CAST(a.Id AS NVARCHAR(20)) LIKE '%' + @Busca + '%'
+          OR v.Placa LIKE '%' + @Busca + '%'
+          OR t.Nome LIKE '%' + @Busca + '%'
+          OR m.Nome LIKE '%' + @Busca + '%'
+      )
+    ORDER BY
+        CASE a.StatusId
+            WHEN 2 THEN 1
+            WHEN 3 THEN 2
+            WHEN 4 THEN 3
+            ELSE 4
+        END,
+        a.DataHoraAgendada,
+        a.Id;
+END
+GO
+
 CREATE OR ALTER PROCEDURE dbo.sp_ConfiguracaoAgendamento_ObterAtiva
 AS
 BEGIN
@@ -1181,6 +1283,263 @@ BEGIN
         AtualizadoEm
     FROM dbo.ConfiguracaoAgendamento
     WHERE Id = @Id;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Agendamento_Listar
+    @Data DATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @DataInicio DATETIME2(0) = CAST(@Data AS DATETIME2(0));
+    DECLARE @DataFim DATETIME2(0) = DATEADD(DAY, 7, @DataInicio);
+
+    SELECT
+        a.Id,
+        a.OperacaoId,
+        o.Descricao AS OperacaoDescricao,
+        a.StatusId,
+        s.Descricao AS StatusDescricao,
+        a.VeiculoId,
+        v.Placa AS VeiculoPlaca,
+        v.TipoVeiculo,
+        a.TransportadoraId,
+        t.Nome AS TransportadoraNome,
+        a.MotoristaId,
+        m.Nome AS MotoristaNome,
+        m.Cnh AS MotoristaCnh,
+        a.DataHoraAgendada,
+        a.DataHoraChegada,
+        a.DataHoraDoca,
+        a.DataHoraFinalizado,
+        a.CriadoEm,
+        a.AtualizadoEm
+    FROM dbo.Agendamento a
+    INNER JOIN dbo.Operacao o ON o.Id = a.OperacaoId
+    INNER JOIN dbo.Status s ON s.Id = a.StatusId
+    INNER JOIN dbo.Veiculo v ON v.Id = a.VeiculoId
+    INNER JOIN dbo.Transportadora t ON t.Id = a.TransportadoraId
+    INNER JOIN dbo.Motorista m ON m.Id = a.MotoristaId
+    WHERE a.DataHoraAgendada >= @DataInicio
+      AND a.DataHoraAgendada < @DataFim
+    ORDER BY a.DataHoraAgendada, a.Id;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Agendamento_ObterPorId
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        a.Id,
+        a.OperacaoId,
+        o.Descricao AS OperacaoDescricao,
+        a.StatusId,
+        s.Descricao AS StatusDescricao,
+        a.VeiculoId,
+        v.Placa AS VeiculoPlaca,
+        v.TipoVeiculo,
+        a.TransportadoraId,
+        t.Nome AS TransportadoraNome,
+        a.MotoristaId,
+        m.Nome AS MotoristaNome,
+        m.Cnh AS MotoristaCnh,
+        a.DataHoraAgendada,
+        a.DataHoraChegada,
+        a.DataHoraDoca,
+        a.DataHoraFinalizado,
+        a.CriadoEm,
+        a.AtualizadoEm
+    FROM dbo.Agendamento a
+    INNER JOIN dbo.Operacao o ON o.Id = a.OperacaoId
+    INNER JOIN dbo.Status s ON s.Id = a.StatusId
+    INNER JOIN dbo.Veiculo v ON v.Id = a.VeiculoId
+    INNER JOIN dbo.Transportadora t ON t.Id = a.TransportadoraId
+    INNER JOIN dbo.Motorista m ON m.Id = a.MotoristaId
+    WHERE a.Id = @Id;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Agendamento_ListarHorariosDisponiveis
+    @Data DATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @IntervaloMinutos INT;
+    DECLARE @HoraInicio TIME(0);
+    DECLARE @HoraFim TIME(0);
+
+    SELECT TOP (1)
+        @IntervaloMinutos = IntervaloMinutos,
+        @HoraInicio = HoraInicio,
+        @HoraFim = HoraFim
+    FROM dbo.ConfiguracaoAgendamento
+    WHERE Ativo = 1
+    ORDER BY Id DESC;
+
+    IF @IntervaloMinutos IS NULL
+    BEGIN
+        THROW 50008, 'Configuracao de agendamento ativa nao encontrada.', 1;
+    END
+
+    ;WITH Horarios AS
+    (
+        SELECT DATEADD(MINUTE, DATEDIFF(MINUTE, CAST('00:00' AS TIME), @HoraInicio), CAST(@Data AS DATETIME2(0))) AS DataHora
+        UNION ALL
+        SELECT DATEADD(MINUTE, @IntervaloMinutos, DataHora)
+        FROM Horarios
+        WHERE DATEADD(MINUTE, @IntervaloMinutos, DataHora) < DATEADD(MINUTE, DATEDIFF(MINUTE, CAST('00:00' AS TIME), @HoraFim), CAST(@Data AS DATETIME2(0)))
+    )
+    SELECT
+        h.DataHora,
+        CONVERT(VARCHAR(5), CAST(h.DataHora AS TIME(0)), 108) AS Horario
+    FROM Horarios h
+    WHERE NOT EXISTS
+    (
+        SELECT 1
+        FROM dbo.Agendamento a
+        WHERE a.DataHoraAgendada = h.DataHora
+          AND a.StatusId IN (1, 2, 3)
+    )
+    ORDER BY h.DataHora
+    OPTION (MAXRECURSION 1440);
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Agendamento_ListarVeiculosDisponiveis
+    @TransportadoraId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.Transportadora WHERE Id = @TransportadoraId AND Ativo = 1)
+    BEGIN
+        THROW 50004, 'Transportadora nao encontrada ou inativa.', 1;
+    END
+
+    SELECT
+        v.Id,
+        v.Placa,
+        v.TipoVeiculo,
+        v.TransportadoraId,
+        t.Nome AS TransportadoraNome
+    FROM dbo.Veiculo v
+    INNER JOIN dbo.Transportadora t ON t.Id = v.TransportadoraId
+    WHERE v.TransportadoraId = @TransportadoraId
+      AND v.Ativo = 1
+      AND t.Ativo = 1
+      AND NOT EXISTS
+      (
+          SELECT 1
+          FROM dbo.Agendamento a
+          WHERE a.VeiculoId = v.Id
+            AND a.StatusId IN (1, 2, 3)
+      )
+    ORDER BY v.Placa;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Agendamento_Inserir
+    @OperacaoId INT,
+    @TransportadoraId INT,
+    @VeiculoId INT,
+    @MotoristaId INT,
+    @DataHoraAgendada DATETIME2(0)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @IntervaloMinutos INT;
+    DECLARE @HoraInicio TIME(0);
+    DECLARE @HoraFim TIME(0);
+    DECLARE @HoraAgendada TIME(0) = CAST(@DataHoraAgendada AS TIME(0));
+    DECLARE @MinutosDesdeInicio INT;
+
+    SELECT TOP (1)
+        @IntervaloMinutos = IntervaloMinutos,
+        @HoraInicio = HoraInicio,
+        @HoraFim = HoraFim
+    FROM dbo.ConfiguracaoAgendamento
+    WHERE Ativo = 1
+    ORDER BY Id DESC;
+
+    IF @IntervaloMinutos IS NULL
+    BEGIN
+        THROW 50008, 'Configuracao de agendamento ativa nao encontrada.', 1;
+    END
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.Operacao WHERE Id = @OperacaoId AND Ativo = 1)
+    BEGIN
+        THROW 50004, 'Operacao nao encontrada ou inativa.', 1;
+    END
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.Transportadora WHERE Id = @TransportadoraId AND Ativo = 1)
+    BEGIN
+        THROW 50004, 'Transportadora nao encontrada ou inativa.', 1;
+    END
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.Veiculo WHERE Id = @VeiculoId AND TransportadoraId = @TransportadoraId AND Ativo = 1)
+    BEGIN
+        THROW 50004, 'Veiculo nao encontrado, inativo ou nao pertence a transportadora informada.', 1;
+    END
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.Motorista WHERE Id = @MotoristaId AND Ativo = 1)
+    BEGIN
+        THROW 50004, 'Motorista nao encontrado ou inativo.', 1;
+    END
+
+    IF @HoraAgendada < @HoraInicio OR @HoraAgendada >= @HoraFim
+    BEGIN
+        THROW 50007, 'Horario fora da janela de agendamento.', 1;
+    END
+
+    SET @MinutosDesdeInicio = DATEDIFF(MINUTE, @HoraInicio, @HoraAgendada);
+
+    IF @MinutosDesdeInicio % @IntervaloMinutos <> 0
+    BEGIN
+        THROW 50007, 'Horario nao respeita o intervalo configurado.', 1;
+    END
+
+    IF EXISTS (SELECT 1 FROM dbo.Agendamento WHERE DataHoraAgendada = @DataHoraAgendada AND StatusId IN (1, 2, 3))
+    BEGIN
+        THROW 50007, 'Horario ja ocupado.', 1;
+    END
+
+    IF EXISTS (SELECT 1 FROM dbo.Agendamento WHERE MotoristaId = @MotoristaId AND StatusId IN (1, 2, 3))
+    BEGIN
+        THROW 50007, 'Motorista ja possui agendamento ativo.', 1;
+    END
+
+    IF EXISTS (SELECT 1 FROM dbo.Agendamento WHERE VeiculoId = @VeiculoId AND StatusId IN (1, 2, 3))
+    BEGIN
+        THROW 50007, 'Veiculo ja possui agendamento ativo.', 1;
+    END
+
+    INSERT INTO dbo.Agendamento (OperacaoId, StatusId, TransportadoraId, VeiculoId, MotoristaId, DataHoraAgendada)
+    VALUES (@OperacaoId, 1, @TransportadoraId, @VeiculoId, @MotoristaId, @DataHoraAgendada);
+
+    SELECT CAST(SCOPE_IDENTITY() AS INT) AS Id;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Agendamento_Cancelar
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE dbo.Agendamento
+    SET
+        StatusId = 5,
+        AtualizadoEm = SYSDATETIME()
+    WHERE Id = @Id
+      AND StatusId IN (1, 2, 3);
+
+    SELECT @@ROWCOUNT AS LinhasAfetadas;
 END
 GO
 

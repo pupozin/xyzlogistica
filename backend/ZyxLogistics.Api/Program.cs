@@ -69,7 +69,13 @@ builder.Services.AddAuthorization(options =>
         "usuarios.editar",
         "usuarios.excluir",
         "perfis.visualizar",
-        "perfis.editar_permissoes"
+        "perfis.editar_permissoes",
+        "agendamentos.visualizar",
+        "agendamentos.criar",
+        "agendamentos.cancelar",
+        "operacoes.visualizar",
+        "operacoes.enviar_doca",
+        "operacoes.finalizar"
     };
 
     foreach (var permission in permissions)
@@ -79,10 +85,12 @@ builder.Services.AddAuthorization(options =>
 });
 
 builder.Services.AddSingleton<DbConnectionFactory>();
+builder.Services.AddScoped<IAgendamentoRepository, AgendamentoRepository>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IConfiguracaoAgendamentoRepository, ConfiguracaoAgendamentoRepository>();
 builder.Services.AddScoped<IMotoristaRepository, MotoristaRepository>();
+builder.Services.AddScoped<IOperacaoRepository, OperacaoRepository>();
 builder.Services.AddScoped<IPerfilRepository, PerfilRepository>();
 builder.Services.AddScoped<IProdutoRepository, ProdutoRepository>();
 builder.Services.AddScoped<ITransportadoraRepository, TransportadoraRepository>();
