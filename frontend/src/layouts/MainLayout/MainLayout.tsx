@@ -95,6 +95,12 @@ function MainLayout({ user }: MainLayoutProps) {
   const [expandedGroup, setExpandedGroup] = useState(currentGroupLabel ?? 'Agendamentos')
 
   function toggleGroup(label: string) {
+    if (!isMenuOpen) {
+      setIsMenuOpen(true)
+      setExpandedGroup(label)
+      return
+    }
+
     setExpandedGroup((current) => (current === label ? '' : label))
   }
 

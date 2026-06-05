@@ -70,11 +70,19 @@
   font-weight: 600;
   text-align: left;
   cursor: pointer;
+  transition:
+    background-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
 }
 
 .menu-parent.active {
   background: #d30a0a;
   color: #ffffff;
+}
+
+.menu-parent:hover {
+  transform: translateX(2px);
 }
 
 .menu-collapsed .menu-parent {
@@ -90,12 +98,18 @@
 .menu-chevron {
   justify-self: end;
   color: currentColor;
+  transition: transform 180ms ease;
+}
+
+.menu-parent.active .menu-chevron {
+  transform: rotate(90deg);
 }
 
 .menu-children {
   display: grid;
   gap: 18px;
   padding: 20px 0 14px 68px;
+  animation: menuChildrenIn 180ms ease both;
 }
 
 .menu-child {
@@ -103,10 +117,29 @@
   font-size: 15px;
   font-weight: 500;
   text-decoration: none;
+  transition:
+    color 160ms ease,
+    transform 160ms ease;
 }
 
 .menu-child.active {
   color: #d30a0a;
+}
+
+.menu-child:hover {
+  transform: translateX(3px);
+}
+
+@keyframes menuChildrenIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .content-area {
