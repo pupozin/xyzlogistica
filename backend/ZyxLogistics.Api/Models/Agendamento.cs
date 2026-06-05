@@ -12,6 +12,8 @@ namespace ZyxLogistics.Api.Models
         public string TipoVeiculo { get; set; } = string.Empty;
         public int TransportadoraId { get; set; }
         public string TransportadoraNome { get; set; } = string.Empty;
+        public int? LocalId { get; set; }
+        public string? LocalDescricao { get; set; }
         public int MotoristaId { get; set; }
         public string MotoristaNome { get; set; } = string.Empty;
         public string MotoristaCnh { get; set; } = string.Empty;

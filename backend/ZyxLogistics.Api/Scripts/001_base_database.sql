@@ -311,6 +311,31 @@ BEGIN
 END
 GO
 
+IF OBJECT_ID(N'dbo.Local', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Local
+    (
+        Id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Local PRIMARY KEY,
+        Descricao NVARCHAR(100) NOT NULL,
+        Ativo BIT NOT NULL CONSTRAINT DF_Local_Ativo DEFAULT (1),
+        CriadoEm DATETIME2(0) NOT NULL CONSTRAINT DF_Local_CriadoEm DEFAULT (SYSDATETIME()),
+        AtualizadoEm DATETIME2(0) NULL
+    );
+
+    CREATE UNIQUE INDEX UX_Local_Descricao
+        ON dbo.Local(Descricao)
+        WHERE Ativo = 1;
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_Local_Descricao' AND object_id = OBJECT_ID(N'dbo.Local'))
+BEGIN
+    CREATE UNIQUE INDEX UX_Local_Descricao
+        ON dbo.Local(Descricao)
+        WHERE Ativo = 1;
+END
+GO
+
 IF OBJECT_ID(N'dbo.Produto', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.Produto
@@ -357,6 +382,7 @@ BEGIN
         OperacaoId INT NOT NULL,
         StatusId INT NOT NULL,
         TransportadoraId INT NOT NULL,
+        LocalId INT NULL,
         VeiculoId INT NOT NULL,
         MotoristaId INT NOT NULL,
         DataHoraAgendada DATETIME2(0) NOT NULL,
@@ -368,6 +394,7 @@ BEGIN
         CONSTRAINT FK_Agendamento_Operacao FOREIGN KEY (OperacaoId) REFERENCES dbo.Operacao(Id),
         CONSTRAINT FK_Agendamento_Status FOREIGN KEY (StatusId) REFERENCES dbo.Status(Id),
         CONSTRAINT FK_Agendamento_Transportadora FOREIGN KEY (TransportadoraId) REFERENCES dbo.Transportadora(Id),
+        CONSTRAINT FK_Agendamento_Local FOREIGN KEY (LocalId) REFERENCES dbo.Local(Id),
         CONSTRAINT FK_Agendamento_Veiculo FOREIGN KEY (VeiculoId) REFERENCES dbo.Veiculo(Id),
         CONSTRAINT FK_Agendamento_Motorista FOREIGN KEY (MotoristaId) REFERENCES dbo.Motorista(Id)
     );
@@ -425,6 +452,25 @@ IF NOT EXISTS
 BEGIN
     ALTER TABLE dbo.Agendamento
     ADD CONSTRAINT FK_Agendamento_Transportadora FOREIGN KEY (TransportadoraId) REFERENCES dbo.Transportadora(Id);
+END
+GO
+
+IF COL_LENGTH(N'dbo.Agendamento', N'LocalId') IS NULL
+BEGIN
+    ALTER TABLE dbo.Agendamento ADD LocalId INT NULL;
+END
+GO
+
+IF NOT EXISTS
+(
+    SELECT 1
+    FROM sys.foreign_keys
+    WHERE name = N'FK_Agendamento_Local'
+      AND parent_object_id = OBJECT_ID(N'dbo.Agendamento')
+)
+BEGIN
+    ALTER TABLE dbo.Agendamento
+    ADD CONSTRAINT FK_Agendamento_Local FOREIGN KEY (LocalId) REFERENCES dbo.Local(Id);
 END
 GO
 
@@ -612,6 +658,10 @@ USING
         (N'produtos.criar', N'Criar produtos'),
         (N'produtos.editar', N'Editar produtos'),
         (N'produtos.excluir', N'Excluir produtos'),
+        (N'locais.visualizar', N'Visualizar locais'),
+        (N'locais.criar', N'Criar locais'),
+        (N'locais.editar', N'Editar locais'),
+        (N'locais.excluir', N'Excluir locais'),
         (N'agendamentos.visualizar', N'Visualizar agendamentos'),
         (N'agendamentos.criar', N'Criar agendamentos'),
         (N'agendamentos.editar', N'Editar agendamentos'),
@@ -662,6 +712,10 @@ WHERE p.Codigo IN
     N'produtos.visualizar',
     N'produtos.criar',
     N'produtos.editar',
+    N'locais.visualizar',
+    N'locais.criar',
+    N'locais.editar',
+    N'locais.excluir',
     N'agendamentos.visualizar',
     N'agendamentos.criar',
     N'agendamentos.editar',
@@ -690,6 +744,7 @@ WHERE p.Codigo IN
     N'veiculos.visualizar',
     N'motoristas.visualizar',
     N'produtos.visualizar',
+    N'locais.visualizar',
     N'agendamentos.visualizar',
     N'operacoes.visualizar',
     N'inventario.visualizar',
@@ -1192,6 +1247,8 @@ BEGIN
         v.TipoVeiculo,
         a.TransportadoraId,
         t.Nome AS TransportadoraNome,
+        a.LocalId,
+        l.Descricao AS LocalDescricao,
         a.MotoristaId,
         m.Nome AS MotoristaNome,
         m.Cnh AS MotoristaCnh,
@@ -1206,6 +1263,7 @@ BEGIN
     INNER JOIN dbo.Status s ON s.Id = a.StatusId
     INNER JOIN dbo.Veiculo v ON v.Id = a.VeiculoId
     INNER JOIN dbo.Transportadora t ON t.Id = a.TransportadoraId
+    LEFT JOIN dbo.Local l ON l.Id = a.LocalId
     INNER JOIN dbo.Motorista m ON m.Id = a.MotoristaId
     WHERE a.OperacaoId = @OperacaoId
       AND a.StatusId IN (2, 3, 4)
@@ -1330,6 +1388,8 @@ BEGIN
         v.TipoVeiculo,
         a.TransportadoraId,
         t.Nome AS TransportadoraNome,
+        a.LocalId,
+        l.Descricao AS LocalDescricao,
         a.MotoristaId,
         m.Nome AS MotoristaNome,
         m.Cnh AS MotoristaCnh,
@@ -1344,6 +1404,7 @@ BEGIN
     INNER JOIN dbo.Status s ON s.Id = a.StatusId
     INNER JOIN dbo.Veiculo v ON v.Id = a.VeiculoId
     INNER JOIN dbo.Transportadora t ON t.Id = a.TransportadoraId
+    LEFT JOIN dbo.Local l ON l.Id = a.LocalId
     INNER JOIN dbo.Motorista m ON m.Id = a.MotoristaId
     WHERE a.DataHoraAgendada >= @DataInicio
       AND a.DataHoraAgendada < @DataFim
@@ -1369,6 +1430,8 @@ BEGIN
         v.TipoVeiculo,
         a.TransportadoraId,
         t.Nome AS TransportadoraNome,
+        a.LocalId,
+        l.Descricao AS LocalDescricao,
         a.MotoristaId,
         m.Nome AS MotoristaNome,
         m.Cnh AS MotoristaCnh,
@@ -1383,6 +1446,7 @@ BEGIN
     INNER JOIN dbo.Status s ON s.Id = a.StatusId
     INNER JOIN dbo.Veiculo v ON v.Id = a.VeiculoId
     INNER JOIN dbo.Transportadora t ON t.Id = a.TransportadoraId
+    LEFT JOIN dbo.Local l ON l.Id = a.LocalId
     INNER JOIN dbo.Motorista m ON m.Id = a.MotoristaId
     WHERE a.Id = @Id;
 END
@@ -1757,6 +1821,106 @@ BEGIN
     SET NOCOUNT ON;
 
     UPDATE dbo.Transportadora
+    SET
+        Ativo = 0,
+        AtualizadoEm = SYSDATETIME()
+    WHERE Id = @Id
+      AND Ativo = 1;
+
+    SELECT @@ROWCOUNT AS LinhasAfetadas;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Local_Listar
+    @Descricao NVARCHAR(100) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        Id,
+        Descricao,
+        Ativo,
+        CriadoEm,
+        AtualizadoEm
+    FROM dbo.Local
+    WHERE Ativo = 1
+      AND (@Descricao IS NULL OR Descricao LIKE '%' + @Descricao + '%')
+    ORDER BY Descricao;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Local_ObterPorId
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        Id,
+        Descricao,
+        Ativo,
+        CriadoEm,
+        AtualizadoEm
+    FROM dbo.Local
+    WHERE Id = @Id
+      AND Ativo = 1;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Local_Inserir
+    @Descricao NVARCHAR(100)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF EXISTS (SELECT 1 FROM dbo.Local WHERE Descricao = @Descricao AND Ativo = 1)
+    BEGIN
+        THROW 50001, 'Ja existe um local cadastrado com esta descricao.', 1;
+    END
+
+    INSERT INTO dbo.Local (Descricao)
+    VALUES (@Descricao);
+
+    SELECT CAST(SCOPE_IDENTITY() AS INT) AS Id;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Local_Atualizar
+    @Id INT,
+    @Descricao NVARCHAR(100)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF EXISTS (SELECT 1 FROM dbo.Local WHERE Descricao = @Descricao AND Id <> @Id AND Ativo = 1)
+    BEGIN
+        THROW 50001, 'Ja existe um local cadastrado com esta descricao.', 1;
+    END
+
+    UPDATE dbo.Local
+    SET
+        Descricao = @Descricao,
+        AtualizadoEm = SYSDATETIME()
+    WHERE Id = @Id
+      AND Ativo = 1;
+
+    SELECT @@ROWCOUNT AS LinhasAfetadas;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Local_Excluir
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF EXISTS (SELECT 1 FROM dbo.Agendamento WHERE LocalId = @Id AND StatusId IN (2, 3))
+    BEGIN
+        THROW 50007, 'Nao e possivel excluir um local em uso por operacao ativa.', 1;
+    END
+
+    UPDATE dbo.Local
     SET
         Ativo = 0,
         AtualizadoEm = SYSDATETIME()

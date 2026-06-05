@@ -94,6 +94,8 @@ namespace ZyxLogistics.Api.Repositories
                 TipoVeiculo = reader.GetString("TipoVeiculo"),
                 TransportadoraId = reader.GetInt32("TransportadoraId"),
                 TransportadoraNome = reader.GetString("TransportadoraNome"),
+                LocalId = reader.IsDBNull("LocalId") ? null : reader.GetInt32("LocalId"),
+                LocalDescricao = reader.IsDBNull("LocalDescricao") ? null : reader.GetString("LocalDescricao"),
                 MotoristaId = reader.GetInt32("MotoristaId"),
                 MotoristaNome = reader.GetString("MotoristaNome"),
                 MotoristaCnh = reader.GetString("MotoristaCnh"),

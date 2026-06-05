@@ -77,7 +77,11 @@ builder.Services.AddAuthorization(options =>
         "operacoes.visualizar",
         "operacoes.enviar_doca",
         "operacoes.finalizar",
-        "inventario.visualizar"
+        "inventario.visualizar",
+        "locais.visualizar",
+        "locais.criar",
+        "locais.editar",
+        "locais.excluir"
     };
 
     foreach (var permission in permissions)
@@ -92,6 +96,7 @@ builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IConfiguracaoAgendamentoRepository, ConfiguracaoAgendamentoRepository>();
 builder.Services.AddScoped<IInventarioRepository, InventarioRepository>();
+builder.Services.AddScoped<ILocalRepository, LocalRepository>();
 builder.Services.AddScoped<IMotoristaRepository, MotoristaRepository>();
 builder.Services.AddScoped<IOperacaoItemRepository, OperacaoItemRepository>();
 builder.Services.AddScoped<IOperacaoRepository, OperacaoRepository>();
