@@ -3,16 +3,24 @@ using System.Security.Cryptography;
 using Microsoft.Data.SqlClient;
 using ZyxLogistics.Api.Database;
 using ZyxLogistics.Api.DTOs;
+using ZyxLogistics.Api.Services;
 
 namespace ZyxLogistics.Api.Repositories
 {
     public class CheckInRepository : ICheckInRepository
     {
         private readonly DbConnectionFactory _connectionFactory;
+        private readonly ISmsService _smsService;
+        private readonly IWebHostEnvironment _environment;
 
-        public CheckInRepository(DbConnectionFactory connectionFactory)
+        public CheckInRepository(
+            DbConnectionFactory connectionFactory,
+            ISmsService smsService,
+            IWebHostEnvironment environment)
         {
             _connectionFactory = connectionFactory;
+            _smsService = smsService;
+            _environment = environment;
         }
 
         public async Task<CheckInCodigoResponse> SolicitarCodigoAsync(SolicitarCheckInCodigoRequest request)
@@ -32,14 +40,20 @@ namespace ZyxLogistics.Api.Repositories
                 throw new InvalidOperationException("Codigo de check-in nao foi gerado.");
             }
 
-            return new CheckInCodigoResponse
+            var response = new CheckInCodigoResponse
             {
                 AgendamentoId = reader.GetInt32("AgendamentoId"),
                 MotoristaNome = reader.GetString("MotoristaNome"),
                 TelefoneMascarado = reader.GetString("TelefoneMascarado"),
                 ExpiraEm = reader.GetDateTime("ExpiraEm"),
-                CodigoDesenvolvimento = reader.GetString("CodigoDesenvolvimento")
+                CodigoDesenvolvimento = _environment.IsDevelopment() ? reader.GetString("CodigoDesenvolvimento") : null,
+                Telefone = reader.GetString("Telefone"),
+                Mensagem = reader.GetString("Mensagem")
             };
+
+            await _smsService.EnviarAsync(response.Telefone, response.Mensagem);
+
+            return response;
         }
 
         public async Task<bool> ConfirmarAsync(ConfirmarCheckInRequest request)

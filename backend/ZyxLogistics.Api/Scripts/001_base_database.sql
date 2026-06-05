@@ -1842,7 +1842,9 @@ BEGIN
         @MotoristaNome AS MotoristaNome,
         @TelefoneMascarado AS TelefoneMascarado,
         @ExpiraEm AS ExpiraEm,
-        @Codigo AS CodigoDesenvolvimento;
+        @Codigo AS CodigoDesenvolvimento,
+        @Telefone AS Telefone,
+        @Mensagem AS Mensagem;
 END
 GO
 

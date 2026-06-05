@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace ZyxLogistics.Api.DTOs
 {
     public class CheckInCodigoResponse
@@ -7,5 +9,11 @@ namespace ZyxLogistics.Api.DTOs
         public string TelefoneMascarado { get; set; } = string.Empty;
         public DateTime ExpiraEm { get; set; }
         public string? CodigoDesenvolvimento { get; set; }
+
+        [JsonIgnore]
+        public string Telefone { get; set; } = string.Empty;
+
+        [JsonIgnore]
+        public string Mensagem { get; set; } = string.Empty;
     }
 }

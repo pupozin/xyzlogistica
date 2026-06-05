@@ -110,6 +110,20 @@ builder.Services.AddScoped<IVeiculoRepository, VeiculoRepository>();
 builder.Services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
 builder.Services.AddSingleton<IPasswordService, PasswordService>();
 builder.Services.AddSingleton<ITokenService, TokenService>();
+builder.Services.AddHttpClient<TwilioSmsService>();
+builder.Services.AddScoped<SimulatedSmsService>();
+builder.Services.AddScoped<ISmsService>(serviceProvider =>
+{
+    var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+    var provider = configuration["Sms:Provider"];
+
+    if (string.Equals(provider, "Twilio", StringComparison.OrdinalIgnoreCase))
+    {
+        return serviceProvider.GetRequiredService<TwilioSmsService>();
+    }
+
+    return serviceProvider.GetRequiredService<SimulatedSmsService>();
+});
 
 var app = builder.Build();
 
