@@ -6,5 +6,8 @@ namespace ZyxLogistics.Api.DTOs
     {
         [Required]
         public DateTime Data { get; set; }
+
+        [Range(1, int.MaxValue)]
+        public int OperacaoId { get; set; }
     }
 }

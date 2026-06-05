@@ -21,8 +21,15 @@ namespace ZyxLogistics.Api.Controllers
         [Authorize(Policy = "agendamentos.visualizar")]
         public async Task<IActionResult> Listar([FromQuery] AgendamentoFilterRequest filter)
         {
-            var agendamentos = await _agendamentoRepository.ListarAsync(filter.Data);
-            return Ok(agendamentos);
+            try
+            {
+                var agendamentos = await _agendamentoRepository.ListarAsync(filter.Data, filter.OperacaoId);
+                return Ok(agendamentos);
+            }
+            catch (SqlException ex) when (ex.Number == 50004)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpGet("{id:int}")]

@@ -15,13 +15,14 @@ namespace ZyxLogistics.Api.Repositories
             _connectionFactory = connectionFactory;
         }
 
-        public async Task<IReadOnlyList<Agendamento>> ListarAsync(DateTime data)
+        public async Task<IReadOnlyList<Agendamento>> ListarAsync(DateTime data, int operacaoId)
         {
             var agendamentos = new List<Agendamento>();
 
             await using var connection = _connectionFactory.CreateConnection();
             await using var command = CreateProcedureCommand(connection, "dbo.sp_Agendamento_Listar");
             command.Parameters.Add("@Data", SqlDbType.Date).Value = data.Date;
+            command.Parameters.Add("@OperacaoId", SqlDbType.Int).Value = operacaoId;
 
             await connection.OpenAsync();
             await using var reader = await command.ExecuteReaderAsync();

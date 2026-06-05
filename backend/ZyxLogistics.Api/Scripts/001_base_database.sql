@@ -1287,13 +1287,19 @@ END
 GO
 
 CREATE OR ALTER PROCEDURE dbo.sp_Agendamento_Listar
-    @Data DATE
+    @Data DATE,
+    @OperacaoId INT
 AS
 BEGIN
     SET NOCOUNT ON;
 
     DECLARE @DataInicio DATETIME2(0) = CAST(@Data AS DATETIME2(0));
     DECLARE @DataFim DATETIME2(0) = DATEADD(DAY, 7, @DataInicio);
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.Operacao WHERE Id = @OperacaoId AND Ativo = 1)
+    BEGIN
+        THROW 50004, 'Operacao nao encontrada ou inativa.', 1;
+    END
 
     SELECT
         a.Id,
@@ -1323,6 +1329,7 @@ BEGIN
     INNER JOIN dbo.Motorista m ON m.Id = a.MotoristaId
     WHERE a.DataHoraAgendada >= @DataInicio
       AND a.DataHoraAgendada < @DataFim
+      AND a.OperacaoId = @OperacaoId
     ORDER BY a.DataHoraAgendada, a.Id;
 END
 GO

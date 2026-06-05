@@ -5,7 +5,7 @@ namespace ZyxLogistics.Api.Repositories
 {
     public interface IAgendamentoRepository
     {
-        Task<IReadOnlyList<Agendamento>> ListarAsync(DateTime data);
+        Task<IReadOnlyList<Agendamento>> ListarAsync(DateTime data, int operacaoId);
         Task<Agendamento?> ObterPorIdAsync(int id);
         Task<IReadOnlyList<HorarioDisponivel>> ListarHorariosDisponiveisAsync(DateTime data);
         Task<IReadOnlyList<VeiculoDisponivel>> ListarVeiculosDisponiveisAsync(int transportadoraId);
