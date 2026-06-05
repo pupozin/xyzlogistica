@@ -133,5 +133,51 @@ namespace ZyxLogistics.Api.Controllers
 
             return NoContent();
         }
+
+        [HttpPut("{id:int}/enviar-doca")]
+        [Authorize(Policy = "operacoes.enviar_doca")]
+        public async Task<IActionResult> EnviarDoca(int id, EnviarDocaRequest request)
+        {
+            try
+            {
+                var enviado = await _agendamentoRepository.EnviarDocaAsync(id, request);
+
+                if (!enviado)
+                {
+                    return NotFound();
+                }
+
+                return NoContent();
+            }
+            catch (SqlException ex) when (ex.Number == 50004)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (SqlException ex) when (ex.Number == 50007)
+            {
+                return Conflict(new { message = ex.Message });
+            }
+        }
+
+        [HttpPut("{id:int}/finalizar")]
+        [Authorize(Policy = "operacoes.finalizar")]
+        public async Task<IActionResult> Finalizar(int id)
+        {
+            try
+            {
+                var finalizado = await _agendamentoRepository.FinalizarAsync(id);
+
+                if (!finalizado)
+                {
+                    return NotFound();
+                }
+
+                return NoContent();
+            }
+            catch (SqlException ex) when (ex.Number == 50007)
+            {
+                return Conflict(new { message = ex.Message });
+            }
+        }
     }
 }

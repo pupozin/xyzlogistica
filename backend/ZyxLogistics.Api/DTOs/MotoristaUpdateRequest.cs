@@ -11,5 +11,9 @@ namespace ZyxLogistics.Api.DTOs
         [Required]
         [StringLength(30)]
         public string Cnh { get; set; } = string.Empty;
+
+        [Required]
+        [StringLength(20)]
+        public string Telefone { get; set; } = string.Empty;
     }
 }

@@ -146,6 +146,31 @@ namespace ZyxLogistics.Api.Repositories
             return Convert.ToInt32(result) > 0;
         }
 
+        public async Task<bool> EnviarDocaAsync(int id, EnviarDocaRequest request)
+        {
+            await using var connection = _connectionFactory.CreateConnection();
+            await using var command = CreateProcedureCommand(connection, "dbo.sp_Agendamento_EnviarDoca");
+            command.Parameters.Add("@Id", SqlDbType.Int).Value = id;
+            command.Parameters.Add("@LocalId", SqlDbType.Int).Value = request.LocalId;
+
+            await connection.OpenAsync();
+
+            var result = await command.ExecuteScalarAsync();
+            return Convert.ToInt32(result) > 0;
+        }
+
+        public async Task<bool> FinalizarAsync(int id)
+        {
+            await using var connection = _connectionFactory.CreateConnection();
+            await using var command = CreateProcedureCommand(connection, "dbo.sp_Agendamento_Finalizar");
+            command.Parameters.Add("@Id", SqlDbType.Int).Value = id;
+
+            await connection.OpenAsync();
+
+            var result = await command.ExecuteScalarAsync();
+            return Convert.ToInt32(result) > 0;
+        }
+
         private static SqlCommand CreateProcedureCommand(SqlConnection connection, string procedureName)
         {
             return new SqlCommand(procedureName, connection)

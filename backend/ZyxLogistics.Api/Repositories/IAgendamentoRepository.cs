@@ -12,5 +12,7 @@ namespace ZyxLogistics.Api.Repositories
         Task<int> InserirAsync(AgendamentoCreateRequest request);
         Task<bool> AtualizarAsync(int id, AgendamentoUpdateRequest request);
         Task<bool> CancelarAsync(int id);
+        Task<bool> EnviarDocaAsync(int id, EnviarDocaRequest request);
+        Task<bool> FinalizarAsync(int id);
     }
 }

@@ -250,6 +250,7 @@ BEGIN
         Id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Motorista PRIMARY KEY,
         Nome NVARCHAR(150) NOT NULL,
         Cnh VARCHAR(30) NOT NULL,
+        Telefone VARCHAR(20) NOT NULL CONSTRAINT DF_Motorista_Telefone DEFAULT (''),
         Ativo BIT NOT NULL CONSTRAINT DF_Motorista_Ativo DEFAULT (1),
         CriadoEm DATETIME2(0) NOT NULL CONSTRAINT DF_Motorista_CriadoEm DEFAULT (SYSDATETIME()),
         AtualizadoEm DATETIME2(0) NULL
@@ -258,6 +259,12 @@ BEGIN
     CREATE UNIQUE INDEX UX_Motorista_Cnh
         ON dbo.Motorista(Cnh)
         WHERE Ativo = 1;
+END
+GO
+
+IF COL_LENGTH(N'dbo.Motorista', N'Telefone') IS NULL
+BEGIN
+    ALTER TABLE dbo.Motorista ADD Telefone VARCHAR(20) NOT NULL CONSTRAINT DF_Motorista_Telefone DEFAULT ('');
 END
 GO
 
@@ -554,6 +561,39 @@ BEGIN
     );
 
     CREATE UNIQUE INDEX UX_Inventario_ProdutoId ON dbo.Inventario(ProdutoId);
+END
+GO
+
+IF OBJECT_ID(N'dbo.CheckInCodigo', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.CheckInCodigo
+    (
+        Id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_CheckInCodigo PRIMARY KEY,
+        AgendamentoId INT NOT NULL,
+        MotoristaId INT NOT NULL,
+        Cnh VARCHAR(30) NOT NULL,
+        Telefone VARCHAR(20) NOT NULL,
+        Codigo VARCHAR(6) NOT NULL,
+        ExpiraEm DATETIME2(0) NOT NULL,
+        UsadoEm DATETIME2(0) NULL,
+        CriadoEm DATETIME2(0) NOT NULL CONSTRAINT DF_CheckInCodigo_CriadoEm DEFAULT (SYSDATETIME()),
+        CONSTRAINT FK_CheckInCodigo_Agendamento FOREIGN KEY (AgendamentoId) REFERENCES dbo.Agendamento(Id),
+        CONSTRAINT FK_CheckInCodigo_Motorista FOREIGN KEY (MotoristaId) REFERENCES dbo.Motorista(Id)
+    );
+
+    CREATE INDEX IX_CheckInCodigo_Cnh_Codigo ON dbo.CheckInCodigo(Cnh, Codigo, ExpiraEm);
+END
+GO
+
+IF OBJECT_ID(N'dbo.SmsEnvio', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.SmsEnvio
+    (
+        Id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_SmsEnvio PRIMARY KEY,
+        Telefone VARCHAR(20) NOT NULL,
+        Mensagem NVARCHAR(300) NOT NULL,
+        CriadoEm DATETIME2(0) NOT NULL CONSTRAINT DF_SmsEnvio_CriadoEm DEFAULT (SYSDATETIME())
+    );
 END
 GO
 
@@ -1729,6 +1769,182 @@ BEGIN
 END
 GO
 
+CREATE OR ALTER PROCEDURE dbo.sp_CheckIn_SolicitarCodigo
+    @Cnh VARCHAR(30),
+    @Codigo VARCHAR(6)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    DECLARE @MotoristaId INT;
+    DECLARE @MotoristaNome NVARCHAR(150);
+    DECLARE @Telefone VARCHAR(20);
+    DECLARE @AgendamentoId INT;
+    DECLARE @ExpiraEm DATETIME2(0) = DATEADD(MINUTE, 10, SYSDATETIME());
+    DECLARE @TelefoneMascarado VARCHAR(20);
+    DECLARE @Mensagem NVARCHAR(300);
+
+    SELECT
+        @MotoristaId = Id,
+        @MotoristaNome = Nome,
+        @Telefone = Telefone
+    FROM dbo.Motorista
+    WHERE Cnh = @Cnh
+      AND Ativo = 1;
+
+    IF @MotoristaId IS NULL
+    BEGIN
+        THROW 50004, 'Motorista nao encontrado para esta CNH.', 1;
+    END
+
+    IF NULLIF(LTRIM(RTRIM(@Telefone)), '') IS NULL
+    BEGIN
+        THROW 50007, 'Motorista nao possui telefone cadastrado.', 1;
+    END
+
+    SELECT TOP (1) @AgendamentoId = Id
+    FROM dbo.Agendamento
+    WHERE MotoristaId = @MotoristaId
+      AND StatusId = 1
+      AND DataHoraAgendada >= DATEADD(DAY, -1, SYSDATETIME())
+    ORDER BY DataHoraAgendada;
+
+    IF @AgendamentoId IS NULL
+    BEGIN
+        THROW 50004, 'Agendamento ativo nao encontrado para este motorista.', 1;
+    END
+
+    UPDATE dbo.CheckInCodigo
+    SET UsadoEm = SYSDATETIME()
+    WHERE AgendamentoId = @AgendamentoId
+      AND UsadoEm IS NULL;
+
+    SET @Mensagem = N'Codigo de check-in ZYX: ' + @Codigo;
+    SET @TelefoneMascarado =
+        CASE
+            WHEN LEN(@Telefone) <= 4 THEN REPLICATE('*', LEN(@Telefone))
+            ELSE REPLICATE('*', LEN(@Telefone) - 4) + RIGHT(@Telefone, 4)
+        END;
+
+    BEGIN TRANSACTION;
+
+        INSERT INTO dbo.CheckInCodigo (AgendamentoId, MotoristaId, Cnh, Telefone, Codigo, ExpiraEm)
+        VALUES (@AgendamentoId, @MotoristaId, @Cnh, @Telefone, @Codigo, @ExpiraEm);
+
+        INSERT INTO dbo.SmsEnvio (Telefone, Mensagem)
+        VALUES (@Telefone, @Mensagem);
+
+    COMMIT TRANSACTION;
+
+    SELECT
+        @AgendamentoId AS AgendamentoId,
+        @MotoristaNome AS MotoristaNome,
+        @TelefoneMascarado AS TelefoneMascarado,
+        @ExpiraEm AS ExpiraEm,
+        @Codigo AS CodigoDesenvolvimento;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_CheckIn_Confirmar
+    @Cnh VARCHAR(30),
+    @Codigo VARCHAR(6)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    DECLARE @CheckInCodigoId INT;
+    DECLARE @AgendamentoId INT;
+    DECLARE @LinhasAfetadas INT = 0;
+
+    SELECT TOP (1)
+        @CheckInCodigoId = cic.Id,
+        @AgendamentoId = cic.AgendamentoId
+    FROM dbo.CheckInCodigo cic
+    INNER JOIN dbo.Agendamento a ON a.Id = cic.AgendamentoId
+    WHERE cic.Cnh = @Cnh
+      AND cic.Codigo = @Codigo
+      AND cic.UsadoEm IS NULL
+      AND cic.ExpiraEm >= SYSDATETIME()
+      AND a.StatusId = 1
+    ORDER BY cic.Id DESC;
+
+    IF @CheckInCodigoId IS NULL
+    BEGIN
+        THROW 50007, 'Codigo invalido, expirado ou agendamento nao esta mais aguardando check-in.', 1;
+    END
+
+    BEGIN TRANSACTION;
+
+        UPDATE dbo.Agendamento
+        SET
+            StatusId = 2,
+            DataHoraChegada = SYSDATETIME(),
+            AtualizadoEm = SYSDATETIME()
+        WHERE Id = @AgendamentoId
+          AND StatusId = 1;
+
+        SET @LinhasAfetadas = @@ROWCOUNT;
+
+        UPDATE dbo.CheckInCodigo
+        SET UsadoEm = SYSDATETIME()
+        WHERE Id = @CheckInCodigoId;
+
+    COMMIT TRANSACTION;
+
+    SELECT @LinhasAfetadas AS LinhasAfetadas;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Agendamento_EnviarDoca
+    @Id INT,
+    @LocalId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.Local WHERE Id = @LocalId AND Ativo = 1)
+    BEGIN
+        THROW 50004, 'Local nao encontrado ou inativo.', 1;
+    END
+
+    IF EXISTS (SELECT 1 FROM dbo.Agendamento WHERE LocalId = @LocalId AND StatusId = 3 AND Id <> @Id)
+    BEGIN
+        THROW 50007, 'Local ja esta em uso por outro agendamento em doca.', 1;
+    END
+
+    UPDATE dbo.Agendamento
+    SET
+        StatusId = 3,
+        LocalId = @LocalId,
+        DataHoraDoca = SYSDATETIME(),
+        AtualizadoEm = SYSDATETIME()
+    WHERE Id = @Id
+      AND StatusId = 2;
+
+    SELECT @@ROWCOUNT AS LinhasAfetadas;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Agendamento_Finalizar
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE dbo.Agendamento
+    SET
+        StatusId = 4,
+        DataHoraFinalizado = SYSDATETIME(),
+        AtualizadoEm = SYSDATETIME()
+    WHERE Id = @Id
+      AND StatusId = 3;
+
+    SELECT @@ROWCOUNT AS LinhasAfetadas;
+END
+GO
+
 CREATE OR ALTER PROCEDURE dbo.sp_Transportadora_Listar
     @Nome NVARCHAR(150) = NULL,
     @Cnpj VARCHAR(20) = NULL
@@ -1915,7 +2131,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    IF EXISTS (SELECT 1 FROM dbo.Agendamento WHERE LocalId = @Id AND StatusId IN (2, 3))
+    IF EXISTS (SELECT 1 FROM dbo.Agendamento WHERE LocalId = @Id AND StatusId = 3)
     BEGIN
         THROW 50007, 'Nao e possivel excluir um local em uso por operacao ativa.', 1;
     END
@@ -1942,6 +2158,7 @@ BEGIN
         Id,
         Nome,
         Cnh,
+        Telefone,
         Ativo,
         CriadoEm,
         AtualizadoEm
@@ -1963,6 +2180,7 @@ BEGIN
         Id,
         Nome,
         Cnh,
+        Telefone,
         Ativo,
         CriadoEm,
         AtualizadoEm
@@ -1974,7 +2192,8 @@ GO
 
 CREATE OR ALTER PROCEDURE dbo.sp_Motorista_Inserir
     @Nome NVARCHAR(150),
-    @Cnh VARCHAR(30)
+    @Cnh VARCHAR(30),
+    @Telefone VARCHAR(20)
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -1984,8 +2203,8 @@ BEGIN
         THROW 50001, 'Ja existe um motorista cadastrado com esta CNH.', 1;
     END
 
-    INSERT INTO dbo.Motorista (Nome, Cnh)
-    VALUES (@Nome, @Cnh);
+    INSERT INTO dbo.Motorista (Nome, Cnh, Telefone)
+    VALUES (@Nome, @Cnh, @Telefone);
 
     SELECT CAST(SCOPE_IDENTITY() AS INT) AS Id;
 END
@@ -1994,7 +2213,8 @@ GO
 CREATE OR ALTER PROCEDURE dbo.sp_Motorista_Atualizar
     @Id INT,
     @Nome NVARCHAR(150),
-    @Cnh VARCHAR(30)
+    @Cnh VARCHAR(30),
+    @Telefone VARCHAR(20)
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -2008,6 +2228,7 @@ BEGIN
     SET
         Nome = @Nome,
         Cnh = @Cnh,
+        Telefone = @Telefone,
         AtualizadoEm = SYSDATETIME()
     WHERE Id = @Id
       AND Ativo = 1;

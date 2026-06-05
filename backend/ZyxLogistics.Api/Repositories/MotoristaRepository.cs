@@ -56,7 +56,7 @@ namespace ZyxLogistics.Api.Repositories
         {
             await using var connection = _connectionFactory.CreateConnection();
             await using var command = CreateProcedureCommand(connection, "dbo.sp_Motorista_Inserir");
-            AddMotoristaParameters(command, request.Nome, request.Cnh);
+            AddMotoristaParameters(command, request.Nome, request.Cnh, request.Telefone);
 
             await connection.OpenAsync();
 
@@ -69,7 +69,7 @@ namespace ZyxLogistics.Api.Repositories
             await using var connection = _connectionFactory.CreateConnection();
             await using var command = CreateProcedureCommand(connection, "dbo.sp_Motorista_Atualizar");
             command.Parameters.AddWithValue("@Id", id);
-            AddMotoristaParameters(command, request.Nome, request.Cnh);
+            AddMotoristaParameters(command, request.Nome, request.Cnh, request.Telefone);
 
             await connection.OpenAsync();
 
@@ -97,10 +97,11 @@ namespace ZyxLogistics.Api.Repositories
             };
         }
 
-        private static void AddMotoristaParameters(SqlCommand command, string nome, string cnh)
+        private static void AddMotoristaParameters(SqlCommand command, string nome, string cnh, string telefone)
         {
             command.Parameters.Add("@Nome", SqlDbType.NVarChar, 150).Value = nome.Trim();
             command.Parameters.Add("@Cnh", SqlDbType.VarChar, 30).Value = cnh.Trim();
+            command.Parameters.Add("@Telefone", SqlDbType.VarChar, 20).Value = telefone.Trim();
         }
 
         private static void AddNullableStringParameter(SqlCommand command, string name, SqlDbType type, int size, string? value)
@@ -116,6 +117,7 @@ namespace ZyxLogistics.Api.Repositories
                 Id = reader.GetInt32("Id"),
                 Nome = reader.GetString("Nome"),
                 Cnh = reader.GetString("Cnh"),
+                Telefone = reader.GetString("Telefone"),
                 Ativo = reader.GetBoolean("Ativo"),
                 CriadoEm = reader.GetDateTime("CriadoEm"),
                 AtualizadoEm = reader.IsDBNull("AtualizadoEm") ? null : reader.GetDateTime("AtualizadoEm")

@@ -74,6 +74,7 @@ builder.Services.AddAuthorization(options =>
         "agendamentos.criar",
         "agendamentos.editar",
         "agendamentos.cancelar",
+        "checkin.realizar",
         "operacoes.visualizar",
         "operacoes.enviar_doca",
         "operacoes.finalizar",
@@ -94,6 +95,7 @@ builder.Services.AddSingleton<DbConnectionFactory>();
 builder.Services.AddScoped<IAgendamentoRepository, AgendamentoRepository>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ICheckInRepository, CheckInRepository>();
 builder.Services.AddScoped<IConfiguracaoAgendamentoRepository, ConfiguracaoAgendamentoRepository>();
 builder.Services.AddScoped<IInventarioRepository, InventarioRepository>();
 builder.Services.AddScoped<ILocalRepository, LocalRepository>();
