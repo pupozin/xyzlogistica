@@ -117,6 +117,23 @@ namespace ZyxLogistics.Api.Repositories
             return Convert.ToInt32(result);
         }
 
+        public async Task<bool> AtualizarAsync(int id, AgendamentoUpdateRequest request)
+        {
+            await using var connection = _connectionFactory.CreateConnection();
+            await using var command = CreateProcedureCommand(connection, "dbo.sp_Agendamento_Atualizar");
+            command.Parameters.Add("@Id", SqlDbType.Int).Value = id;
+            command.Parameters.Add("@OperacaoId", SqlDbType.Int).Value = request.OperacaoId;
+            command.Parameters.Add("@TransportadoraId", SqlDbType.Int).Value = request.TransportadoraId;
+            command.Parameters.Add("@VeiculoId", SqlDbType.Int).Value = request.VeiculoId;
+            command.Parameters.Add("@MotoristaId", SqlDbType.Int).Value = request.MotoristaId;
+            command.Parameters.Add("@DataHoraAgendada", SqlDbType.DateTime2).Value = request.DataHoraAgendada;
+
+            await connection.OpenAsync();
+
+            var result = await command.ExecuteScalarAsync();
+            return Convert.ToInt32(result) > 0;
+        }
+
         public async Task<bool> CancelarAsync(int id)
         {
             await using var connection = _connectionFactory.CreateConnection();

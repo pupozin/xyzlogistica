@@ -489,6 +489,12 @@ BEGIN
 END
 GO
 
+IF COL_LENGTH(N'dbo.OperacaoItem', N'AtualizadoEm') IS NULL
+BEGIN
+    ALTER TABLE dbo.OperacaoItem ADD AtualizadoEm DATETIME2(0) NULL;
+END
+GO
+
 IF OBJECT_ID(N'dbo.Inventario', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.Inventario
@@ -509,6 +515,18 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_Inventario_ProdutoId'
 BEGIN
     CREATE UNIQUE INDEX UX_Inventario_ProdutoId ON dbo.Inventario(ProdutoId);
 END
+GO
+
+INSERT INTO dbo.Inventario (ProdutoId, QuantidadeAtual)
+SELECT p.Id, 0
+FROM dbo.Produto p
+WHERE p.Ativo = 1
+  AND NOT EXISTS
+  (
+      SELECT 1
+      FROM dbo.Inventario i
+      WHERE i.ProdutoId = p.Id
+  );
 GO
 
 IF NOT EXISTS (SELECT 1 FROM dbo.Perfil WHERE Id IN (1, 2, 3))
@@ -1533,6 +1551,103 @@ BEGIN
 END
 GO
 
+CREATE OR ALTER PROCEDURE dbo.sp_Agendamento_Atualizar
+    @Id INT,
+    @OperacaoId INT,
+    @TransportadoraId INT,
+    @VeiculoId INT,
+    @MotoristaId INT,
+    @DataHoraAgendada DATETIME2(0)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @IntervaloMinutos INT;
+    DECLARE @HoraInicio TIME(0);
+    DECLARE @HoraFim TIME(0);
+    DECLARE @HoraAgendada TIME(0) = CAST(@DataHoraAgendada AS TIME(0));
+    DECLARE @MinutosDesdeInicio INT;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.Agendamento WHERE Id = @Id AND StatusId = 1)
+    BEGIN
+        THROW 50007, 'Agendamento nao encontrado ou nao pode mais ser editado.', 1;
+    END
+
+    SELECT TOP (1)
+        @IntervaloMinutos = IntervaloMinutos,
+        @HoraInicio = HoraInicio,
+        @HoraFim = HoraFim
+    FROM dbo.ConfiguracaoAgendamento
+    WHERE Ativo = 1
+    ORDER BY Id DESC;
+
+    IF @IntervaloMinutos IS NULL
+    BEGIN
+        THROW 50008, 'Configuracao de agendamento ativa nao encontrada.', 1;
+    END
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.Operacao WHERE Id = @OperacaoId AND Ativo = 1)
+    BEGIN
+        THROW 50004, 'Operacao nao encontrada ou inativa.', 1;
+    END
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.Transportadora WHERE Id = @TransportadoraId AND Ativo = 1)
+    BEGIN
+        THROW 50004, 'Transportadora nao encontrada ou inativa.', 1;
+    END
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.Veiculo WHERE Id = @VeiculoId AND TransportadoraId = @TransportadoraId AND Ativo = 1)
+    BEGIN
+        THROW 50004, 'Veiculo nao encontrado, inativo ou nao pertence a transportadora informada.', 1;
+    END
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.Motorista WHERE Id = @MotoristaId AND Ativo = 1)
+    BEGIN
+        THROW 50004, 'Motorista nao encontrado ou inativo.', 1;
+    END
+
+    IF @HoraAgendada < @HoraInicio OR @HoraAgendada >= @HoraFim
+    BEGIN
+        THROW 50007, 'Horario fora da janela de agendamento.', 1;
+    END
+
+    SET @MinutosDesdeInicio = DATEDIFF(MINUTE, @HoraInicio, @HoraAgendada);
+
+    IF @MinutosDesdeInicio % @IntervaloMinutos <> 0
+    BEGIN
+        THROW 50007, 'Horario nao respeita o intervalo configurado.', 1;
+    END
+
+    IF EXISTS (SELECT 1 FROM dbo.Agendamento WHERE Id <> @Id AND DataHoraAgendada = @DataHoraAgendada AND StatusId IN (1, 2, 3))
+    BEGIN
+        THROW 50007, 'Horario ja ocupado.', 1;
+    END
+
+    IF EXISTS (SELECT 1 FROM dbo.Agendamento WHERE Id <> @Id AND MotoristaId = @MotoristaId AND StatusId IN (1, 2, 3))
+    BEGIN
+        THROW 50007, 'Motorista ja possui agendamento ativo.', 1;
+    END
+
+    IF EXISTS (SELECT 1 FROM dbo.Agendamento WHERE Id <> @Id AND VeiculoId = @VeiculoId AND StatusId IN (1, 2, 3))
+    BEGIN
+        THROW 50007, 'Veiculo ja possui agendamento ativo.', 1;
+    END
+
+    UPDATE dbo.Agendamento
+    SET
+        OperacaoId = @OperacaoId,
+        TransportadoraId = @TransportadoraId,
+        VeiculoId = @VeiculoId,
+        MotoristaId = @MotoristaId,
+        DataHoraAgendada = @DataHoraAgendada,
+        AtualizadoEm = SYSDATETIME()
+    WHERE Id = @Id
+      AND StatusId = 1;
+
+    SELECT @@ROWCOUNT AS LinhasAfetadas;
+END
+GO
+
 CREATE OR ALTER PROCEDURE dbo.sp_Agendamento_Cancelar
     @Id INT
 AS
@@ -1796,16 +1911,28 @@ CREATE OR ALTER PROCEDURE dbo.sp_Produto_Inserir
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    DECLARE @ProdutoId INT;
 
     IF EXISTS (SELECT 1 FROM dbo.Produto WHERE Descricao = @Descricao AND Ativo = 1)
     BEGIN
         THROW 50001, 'Ja existe um produto cadastrado com esta descricao.', 1;
     END
 
-    INSERT INTO dbo.Produto (Descricao)
-    VALUES (@Descricao);
+    BEGIN TRANSACTION;
 
-    SELECT CAST(SCOPE_IDENTITY() AS INT) AS Id;
+        INSERT INTO dbo.Produto (Descricao)
+        VALUES (@Descricao);
+
+        SET @ProdutoId = CAST(SCOPE_IDENTITY() AS INT);
+
+        INSERT INTO dbo.Inventario (ProdutoId, QuantidadeAtual)
+        VALUES (@ProdutoId, 0);
+
+    COMMIT TRANSACTION;
+
+    SELECT @ProdutoId AS Id;
 END
 GO
 
@@ -1846,6 +1973,275 @@ BEGIN
       AND Ativo = 1;
 
     SELECT @@ROWCOUNT AS LinhasAfetadas;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Inventario_Listar
+    @Produto NVARCHAR(150) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        p.Id AS ProdutoId,
+        p.Descricao AS ProdutoDescricao,
+        i.QuantidadeAtual,
+        i.DataUltimaAtualizacao
+    FROM dbo.Inventario i
+    INNER JOIN dbo.Produto p ON p.Id = i.ProdutoId
+    WHERE p.Ativo = 1
+      AND (@Produto IS NULL OR p.Descricao LIKE '%' + @Produto + '%')
+    ORDER BY p.Descricao;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_OperacaoItem_ListarPorAgendamento
+    @AgendamentoId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        oi.Id,
+        oi.AgendamentoId,
+        oi.ProdutoId,
+        p.Descricao AS ProdutoDescricao,
+        oi.Quantidade,
+        oi.CriadoEm,
+        oi.AtualizadoEm
+    FROM dbo.OperacaoItem oi
+    INNER JOIN dbo.Produto p ON p.Id = oi.ProdutoId
+    WHERE oi.AgendamentoId = @AgendamentoId
+      AND p.Ativo = 1
+    ORDER BY p.Descricao;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_OperacaoItem_Inserir
+    @AgendamentoId INT,
+    @ProdutoId INT,
+    @Quantidade DECIMAL(18,3)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    DECLARE @OperacaoId INT;
+    DECLARE @StatusId INT;
+    DECLARE @EstoqueAtual DECIMAL(18,3);
+    DECLARE @ItemId INT;
+
+    SELECT
+        @OperacaoId = OperacaoId,
+        @StatusId = StatusId
+    FROM dbo.Agendamento
+    WHERE Id = @AgendamentoId;
+
+    IF @OperacaoId IS NULL
+    BEGIN
+        THROW 50004, 'Agendamento nao encontrado.', 1;
+    END
+
+    IF @StatusId <> 3
+    BEGIN
+        THROW 50007, 'Itens so podem ser alterados quando o agendamento esta em doca.', 1;
+    END
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.Produto WHERE Id = @ProdutoId AND Ativo = 1)
+    BEGIN
+        THROW 50004, 'Produto nao encontrado ou inativo.', 1;
+    END
+
+    IF EXISTS (SELECT 1 FROM dbo.OperacaoItem WHERE AgendamentoId = @AgendamentoId AND ProdutoId = @ProdutoId)
+    BEGIN
+        THROW 50001, 'Produto ja informado neste agendamento. Edite a quantidade do item existente.', 1;
+    END
+
+    BEGIN TRANSACTION;
+
+        SELECT @EstoqueAtual = QuantidadeAtual
+        FROM dbo.Inventario WITH (UPDLOCK, HOLDLOCK)
+        WHERE ProdutoId = @ProdutoId;
+
+        IF @EstoqueAtual IS NULL
+        BEGIN
+            INSERT INTO dbo.Inventario (ProdutoId, QuantidadeAtual)
+            VALUES (@ProdutoId, 0);
+
+            SET @EstoqueAtual = 0;
+        END
+
+        IF @OperacaoId = 2 AND @EstoqueAtual < @Quantidade
+        BEGIN
+            THROW 50007, 'Estoque insuficiente para carregar esta quantidade.', 1;
+        END
+
+        UPDATE dbo.Inventario
+        SET
+            QuantidadeAtual = CASE WHEN @OperacaoId = 1 THEN QuantidadeAtual + @Quantidade ELSE QuantidadeAtual - @Quantidade END,
+            DataUltimaAtualizacao = SYSDATETIME()
+        WHERE ProdutoId = @ProdutoId;
+
+        INSERT INTO dbo.OperacaoItem (AgendamentoId, ProdutoId, Quantidade)
+        VALUES (@AgendamentoId, @ProdutoId, @Quantidade);
+
+        SET @ItemId = CAST(SCOPE_IDENTITY() AS INT);
+
+    COMMIT TRANSACTION;
+
+    SELECT @ItemId AS Id;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_OperacaoItem_Atualizar
+    @AgendamentoId INT,
+    @Id INT,
+    @Quantidade DECIMAL(18,3)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    DECLARE @OperacaoId INT;
+    DECLARE @StatusId INT;
+    DECLARE @ProdutoId INT;
+    DECLARE @QuantidadeAnterior DECIMAL(18,3);
+    DECLARE @Diferenca DECIMAL(18,3);
+    DECLARE @MovimentoInventario DECIMAL(18,3);
+    DECLARE @EstoqueAtual DECIMAL(18,3);
+    DECLARE @LinhasAfetadas INT;
+
+    SELECT
+        @OperacaoId = a.OperacaoId,
+        @StatusId = a.StatusId,
+        @ProdutoId = oi.ProdutoId,
+        @QuantidadeAnterior = oi.Quantidade
+    FROM dbo.OperacaoItem oi
+    INNER JOIN dbo.Agendamento a ON a.Id = oi.AgendamentoId
+    WHERE oi.Id = @Id
+      AND oi.AgendamentoId = @AgendamentoId;
+
+    IF @ProdutoId IS NULL
+    BEGIN
+        SELECT 0 AS LinhasAfetadas;
+        RETURN;
+    END
+
+    IF @StatusId <> 3
+    BEGIN
+        THROW 50007, 'Itens so podem ser alterados quando o agendamento esta em doca.', 1;
+    END
+
+    SET @Diferenca = @Quantidade - @QuantidadeAnterior;
+    SET @MovimentoInventario = CASE WHEN @OperacaoId = 1 THEN @Diferenca ELSE -@Diferenca END;
+
+    BEGIN TRANSACTION;
+
+        SELECT @EstoqueAtual = QuantidadeAtual
+        FROM dbo.Inventario WITH (UPDLOCK, HOLDLOCK)
+        WHERE ProdutoId = @ProdutoId;
+
+        IF @EstoqueAtual IS NULL
+        BEGIN
+            THROW 50004, 'Inventario do produto nao encontrado.', 1;
+        END
+
+        IF @MovimentoInventario < 0 AND @EstoqueAtual < ABS(@MovimentoInventario)
+        BEGIN
+            THROW 50007, 'Estoque insuficiente para esta alteracao.', 1;
+        END
+
+        UPDATE dbo.Inventario
+        SET
+            QuantidadeAtual = QuantidadeAtual + @MovimentoInventario,
+            DataUltimaAtualizacao = SYSDATETIME()
+        WHERE ProdutoId = @ProdutoId;
+
+        UPDATE dbo.OperacaoItem
+        SET
+            Quantidade = @Quantidade,
+            AtualizadoEm = SYSDATETIME()
+        WHERE Id = @Id
+          AND AgendamentoId = @AgendamentoId;
+
+        SET @LinhasAfetadas = @@ROWCOUNT;
+
+    COMMIT TRANSACTION;
+
+    SELECT @LinhasAfetadas AS LinhasAfetadas;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_OperacaoItem_Excluir
+    @AgendamentoId INT,
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    DECLARE @OperacaoId INT;
+    DECLARE @StatusId INT;
+    DECLARE @ProdutoId INT;
+    DECLARE @Quantidade DECIMAL(18,3);
+    DECLARE @MovimentoInventario DECIMAL(18,3);
+    DECLARE @EstoqueAtual DECIMAL(18,3);
+    DECLARE @LinhasAfetadas INT;
+
+    SELECT
+        @OperacaoId = a.OperacaoId,
+        @StatusId = a.StatusId,
+        @ProdutoId = oi.ProdutoId,
+        @Quantidade = oi.Quantidade
+    FROM dbo.OperacaoItem oi
+    INNER JOIN dbo.Agendamento a ON a.Id = oi.AgendamentoId
+    WHERE oi.Id = @Id
+      AND oi.AgendamentoId = @AgendamentoId;
+
+    IF @ProdutoId IS NULL
+    BEGIN
+        SELECT 0 AS LinhasAfetadas;
+        RETURN;
+    END
+
+    IF @StatusId <> 3
+    BEGIN
+        THROW 50007, 'Itens so podem ser alterados quando o agendamento esta em doca.', 1;
+    END
+
+    SET @MovimentoInventario = CASE WHEN @OperacaoId = 1 THEN -@Quantidade ELSE @Quantidade END;
+
+    BEGIN TRANSACTION;
+
+        SELECT @EstoqueAtual = QuantidadeAtual
+        FROM dbo.Inventario WITH (UPDLOCK, HOLDLOCK)
+        WHERE ProdutoId = @ProdutoId;
+
+        IF @EstoqueAtual IS NULL
+        BEGIN
+            THROW 50004, 'Inventario do produto nao encontrado.', 1;
+        END
+
+        IF @MovimentoInventario < 0 AND @EstoqueAtual < ABS(@MovimentoInventario)
+        BEGIN
+            THROW 50007, 'Estoque insuficiente para remover este item.', 1;
+        END
+
+        UPDATE dbo.Inventario
+        SET
+            QuantidadeAtual = QuantidadeAtual + @MovimentoInventario,
+            DataUltimaAtualizacao = SYSDATETIME()
+        WHERE ProdutoId = @ProdutoId;
+
+        DELETE FROM dbo.OperacaoItem
+        WHERE Id = @Id
+          AND AgendamentoId = @AgendamentoId;
+
+        SET @LinhasAfetadas = @@ROWCOUNT;
+
+    COMMIT TRANSACTION;
+
+    SELECT @LinhasAfetadas AS LinhasAfetadas;
 END
 GO
 

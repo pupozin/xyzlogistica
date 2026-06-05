@@ -95,6 +95,31 @@ namespace ZyxLogistics.Api.Controllers
             }
         }
 
+        [HttpPut("{id:int}")]
+        [Authorize(Policy = "agendamentos.editar")]
+        public async Task<IActionResult> Atualizar(int id, AgendamentoUpdateRequest request)
+        {
+            try
+            {
+                var atualizado = await _agendamentoRepository.AtualizarAsync(id, request);
+
+                if (!atualizado)
+                {
+                    return NotFound();
+                }
+
+                return NoContent();
+            }
+            catch (SqlException ex) when (ex.Number is 50004 or 50008)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (SqlException ex) when (ex.Number == 50007)
+            {
+                return Conflict(new { message = ex.Message });
+            }
+        }
+
         [HttpPut("{id:int}/cancelar")]
         [Authorize(Policy = "agendamentos.cancelar")]
         public async Task<IActionResult> Cancelar(int id)
