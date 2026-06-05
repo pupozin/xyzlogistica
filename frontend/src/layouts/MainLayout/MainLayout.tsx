@@ -57,10 +57,10 @@ const menuGroups: MenuGroup[] = [
     label: 'Cadastros',
     icon: faUsers,
     children: [
-      { label: 'Veículo', path: '/cadastros/veiculo' },
       { label: 'Transportadora', path: '/cadastros/transportadora' },
-      { label: 'Produto', path: '/cadastros/produto' },
       { label: 'Motorista', path: '/cadastros/motorista' },
+      { label: 'Veículo', path: '/cadastros/veiculo' },
+      { label: 'Produto', path: '/cadastros/produto' },
       { label: 'Usuário', path: '/cadastros/usuario' },
       { label: 'Perfil', path: '/cadastros/perfil' },
     ],

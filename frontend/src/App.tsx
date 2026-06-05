@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
-import Login from './pages/Login/Login'
 import MainLayout from './layouts/MainLayout/MainLayout'
+import CadastroListPage from './pages/Cadastros/CadastroListPage'
+import Login from './pages/Login/Login'
 import PlaceholderPage from './pages/PlaceholderPage'
 
 type UserInfo = {
@@ -44,12 +45,12 @@ function App() {
           <Route path="/agendamentos/outbound" element={<PlaceholderPage title="Agendamentos Outbound" />} />
           <Route path="/operacao/inbound" element={<PlaceholderPage title="Operação Inbound" />} />
           <Route path="/operacao/outbound" element={<PlaceholderPage title="Operação Outbound" />} />
-          <Route path="/cadastros/veiculo" element={<PlaceholderPage title="Veículo" />} />
-          <Route path="/cadastros/transportadora" element={<PlaceholderPage title="Transportadora" />} />
-          <Route path="/cadastros/produto" element={<PlaceholderPage title="Produto" />} />
-          <Route path="/cadastros/motorista" element={<PlaceholderPage title="Motorista" />} />
-          <Route path="/cadastros/usuario" element={<PlaceholderPage title="Usuário" />} />
-          <Route path="/cadastros/perfil" element={<PlaceholderPage title="Perfil" />} />
+          <Route path="/cadastros/transportadora" element={<CadastroListPage cadastro="transportadora" />} />
+          <Route path="/cadastros/motorista" element={<CadastroListPage cadastro="motorista" />} />
+          <Route path="/cadastros/veiculo" element={<CadastroListPage cadastro="veiculo" />} />
+          <Route path="/cadastros/produto" element={<CadastroListPage cadastro="produto" />} />
+          <Route path="/cadastros/usuario" element={<CadastroListPage cadastro="usuario" />} />
+          <Route path="/cadastros/perfil" element={<CadastroListPage cadastro="perfil" />} />
           <Route
             path="/configuracoes/janela-agendamentos"
             element={<PlaceholderPage title="Janela agendamentos" />}

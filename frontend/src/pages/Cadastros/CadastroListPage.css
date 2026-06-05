@@ -1,0 +1,221 @@
+.cadastro-page {
+  display: grid;
+  gap: 22px;
+}
+
+.cadastro-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 0 10px;
+}
+
+.cadastro-title-actions {
+  display: flex;
+  align-items: center;
+  gap: 34px;
+}
+
+.cadastro-title-actions h1 {
+  margin: 0;
+  color: #000000;
+  font-size: 26px;
+  font-weight: 800;
+}
+
+.cadastro-new-button {
+  height: 42px;
+  border: 0;
+  border-radius: 8px;
+  background: #d30a0a;
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cadastro-new-button {
+  min-width: 190px;
+  padding: 0 22px;
+}
+
+.cadastro-filter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cadastro-filter label {
+  color: #000000;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cadastro-filter input {
+  width: 250px;
+  height: 42px;
+  border: 1px solid #dcdcdc;
+  border-radius: 8px;
+  padding: 0 16px;
+  color: #000000;
+  background: #ffffff;
+  outline: none;
+}
+
+.cadastro-filter input::placeholder {
+  color: #b8b8b8;
+}
+
+.cadastro-filter input:focus {
+  border-color: #d30a0a;
+  box-shadow: 0 0 0 3px rgba(211, 10, 10, 0.1);
+}
+
+.cadastro-card {
+  min-height: calc(100vh - 186px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid #dddddd;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 8px 10px 14px rgba(0, 0, 0, 0.18);
+  padding: 18px 24px 18px;
+}
+
+.cadastro-table-wrap {
+  overflow-x: auto;
+}
+
+.cadastro-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  color: #000000;
+  font-size: 13px;
+}
+
+.cadastro-table thead th {
+  height: 40px;
+  background: #eeeeee;
+  font-weight: 700;
+  text-align: center;
+}
+
+.cadastro-table thead th:first-child {
+  border-radius: 6px 0 0 6px;
+}
+
+.cadastro-table thead th:last-child {
+  border-radius: 0 6px 6px 0;
+}
+
+.cadastro-table tbody td {
+  height: 86px;
+  border-bottom: 1px solid #eeeeee;
+  border-left: 1px solid #eeeeee;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.cadastro-table tbody td:first-child {
+  border-left: 0;
+}
+
+.cadastro-actions {
+  display: grid;
+  justify-content: center;
+  gap: 8px;
+}
+
+.cadastro-actions button {
+  width: 86px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.edit-action {
+  border: 1px solid #000000;
+  background: #ffffff;
+  color: #000000;
+}
+
+.edit-action svg {
+  color: #d30a0a;
+}
+
+.delete-action {
+  border: 1px solid #d30a0a;
+  background: #d30a0a;
+  color: #ffffff;
+}
+
+.empty-cell {
+  color: #777777;
+}
+
+.cadastro-footer {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding-top: 16px;
+}
+
+.cadastro-message {
+  color: #8a1f11;
+  font-size: 13px;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.pagination button,
+.pagination span {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  font-weight: 700;
+}
+
+.pagination button {
+  border: 1px solid #dcdcdc;
+  background: #ffffff;
+  color: #7a7a7a;
+  cursor: pointer;
+}
+
+.pagination span {
+  background: #d30a0a;
+  color: #ffffff;
+}
+
+@media (max-width: 980px) {
+  .cadastro-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .cadastro-filter {
+    width: 100%;
+  }
+
+  .cadastro-filter input {
+    flex: 1;
+    width: auto;
+  }
+}
