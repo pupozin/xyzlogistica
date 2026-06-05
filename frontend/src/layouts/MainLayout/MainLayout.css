@@ -1,0 +1,171 @@
+.app-layout {
+  min-height: 100vh;
+  background: #ffffff;
+}
+
+.sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 10;
+  width: 286px;
+  background: #ffcc00;
+  transition: width 180ms ease;
+}
+
+.menu-collapsed .sidebar {
+  width: 76px;
+}
+
+.sidebar-header {
+  height: 116px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px 0 36px;
+}
+
+.menu-collapsed .sidebar-header {
+  justify-content: center;
+  padding: 0;
+}
+
+.sidebar-logo {
+  width: 122px;
+  height: auto;
+  object-fit: contain;
+}
+
+.menu-toggle {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: #000000;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.sidebar-nav {
+  display: grid;
+  gap: 18px;
+  padding: 0 18px 24px 0;
+}
+
+.menu-parent {
+  width: 100%;
+  min-height: 44px;
+  display: grid;
+  grid-template-columns: 24px 1fr 16px;
+  align-items: center;
+  gap: 12px;
+  border: 0;
+  border-radius: 0 22px 22px 0;
+  padding: 0 18px 0 24px;
+  background: transparent;
+  color: #000000;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menu-parent.active {
+  background: #d30a0a;
+  color: #ffffff;
+}
+
+.menu-collapsed .menu-parent {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  padding: 0;
+}
+
+.menu-icon {
+  width: 16px;
+}
+
+.menu-chevron {
+  justify-self: end;
+  color: currentColor;
+}
+
+.menu-children {
+  display: grid;
+  gap: 18px;
+  padding: 20px 0 14px 68px;
+}
+
+.menu-child {
+  color: #000000;
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.menu-child.active {
+  color: #d30a0a;
+}
+
+.content-area {
+  min-height: 100vh;
+  padding-left: 286px;
+  transition: padding-left 180ms ease;
+}
+
+.menu-collapsed .content-area {
+  padding-left: 76px;
+}
+
+.topbar {
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 34px;
+}
+
+.user-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #000000;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.user-icon {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #ffcc00;
+  color: #d30a0a;
+  font-size: 10px;
+}
+
+.page-content {
+  min-height: calc(100vh - 54px);
+  padding: 24px 44px 44px;
+}
+
+.page-placeholder {
+  min-height: calc(100vh - 122px);
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    width: 220px;
+  }
+
+  .content-area {
+    padding-left: 220px;
+  }
+
+  .page-content {
+    padding: 20px 24px 32px;
+  }
+}

@@ -1,7 +1,66 @@
+import { useMemo, useState } from 'react'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import Login from './pages/Login/Login'
+import MainLayout from './layouts/MainLayout/MainLayout'
+import PlaceholderPage from './pages/PlaceholderPage'
+
+type UserInfo = {
+  nome?: string
+  email?: string
+  perfilDescricao?: string
+}
+
+function getStoredUser() {
+  const token = localStorage.getItem('zyx.token')
+  const rawUser = localStorage.getItem('zyx.user')
+
+  if (!token || !rawUser) {
+    return null
+  }
+
+  try {
+    return JSON.parse(rawUser) as UserInfo
+  } catch {
+    localStorage.removeItem('zyx.user')
+    localStorage.removeItem('zyx.token')
+    return null
+  }
+}
 
 function App() {
-  return <Login />
+  const initialUser = useMemo(() => getStoredUser(), [])
+  const [user, setUser] = useState<UserInfo | null>(initialUser)
+
+  if (!user) {
+    return <Login onAuthenticated={setUser} />
+  }
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route element={<MainLayout user={user} />}>
+          <Route index element={<Navigate to="/agendamentos/inbound" replace />} />
+          <Route path="/agendamentos/inbound" element={<PlaceholderPage title="Agendamentos Inbound" />} />
+          <Route path="/agendamentos/outbound" element={<PlaceholderPage title="Agendamentos Outbound" />} />
+          <Route path="/operacao/inbound" element={<PlaceholderPage title="Operação Inbound" />} />
+          <Route path="/operacao/outbound" element={<PlaceholderPage title="Operação Outbound" />} />
+          <Route path="/cadastros/veiculo" element={<PlaceholderPage title="Veículo" />} />
+          <Route path="/cadastros/transportadora" element={<PlaceholderPage title="Transportadora" />} />
+          <Route path="/cadastros/produto" element={<PlaceholderPage title="Produto" />} />
+          <Route path="/cadastros/motorista" element={<PlaceholderPage title="Motorista" />} />
+          <Route path="/cadastros/usuario" element={<PlaceholderPage title="Usuário" />} />
+          <Route path="/cadastros/perfil" element={<PlaceholderPage title="Perfil" />} />
+          <Route
+            path="/configuracoes/janela-agendamentos"
+            element={<PlaceholderPage title="Janela agendamentos" />}
+          />
+          <Route path="/inventario" element={<PlaceholderPage title="Inventário" />} />
+          <Route path="/relatorios" element={<PlaceholderPage title="Relatórios" />} />
+          <Route path="*" element={<Navigate to="/agendamentos/inbound" replace />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  )
 }
 
 export default App

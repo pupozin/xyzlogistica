@@ -19,7 +19,11 @@ type AuthView = 'login' | 'first-access-email' | 'set-password'
 
 const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:5271'
 
-function Login() {
+type LoginProps = {
+  onAuthenticated: (user: LoginResponse) => void
+}
+
+function Login({ onAuthenticated }: LoginProps) {
   const [view, setView] = useState<AuthView>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -48,7 +52,7 @@ function Login() {
       const data = (await response.json()) as LoginResponse
       localStorage.setItem('zyx.token', data.token)
       localStorage.setItem('zyx.user', JSON.stringify(data))
-      setMessage(`Login realizado para ${data.nome}.`)
+      onAuthenticated(data)
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Nao foi possivel entrar.')
     } finally {
