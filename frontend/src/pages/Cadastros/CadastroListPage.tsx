@@ -88,6 +88,14 @@ function buildInitialValues(fields: CadastroFormField[], row?: GridRow): FormVal
   }, {})
 }
 
+function normalizeSearch(value: unknown) {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[.\-/()\s]/g, '')
+    .toLowerCase()
+}
+
 function formatCnpj(value: string) {
   return value
     .replace(/\D/g, '')
@@ -134,23 +142,29 @@ function CadastroListPage({ cadastro }: CadastroListPageProps) {
   const [deleteRow, setDeleteRow] = useState<GridRow | null>(null)
 
   const visibleRows = useMemo(() => {
-    if (cadastro !== 'perfil' || !search.trim()) {
+    if (!search.trim()) {
       return rows
     }
 
-    return rows.filter((row) =>
-      String(row.descricao ?? '')
-        .toLowerCase()
-        .includes(search.trim().toLowerCase()),
-    )
-  }, [cadastro, rows, search])
+    const normalizedSearch = normalizeSearch(search)
 
-  async function loadRows(searchTerm = search) {
+    return rows.filter((row) => {
+      return config.columns.some((column) => {
+        if (column.type === 'date' || column.type === 'boolean') {
+          return false
+        }
+
+        return normalizeSearch(row[column.field]).includes(normalizedSearch)
+      })
+    })
+  }, [config.columns, rows, search])
+
+  async function loadRows() {
     setIsLoading(true)
     setMessage('')
 
     try {
-      const query = config.buildQuery(searchTerm.trim())
+      const query = config.buildQuery('')
       const url = `${apiBaseUrl}${config.endpoint}${query.size ? `?${query}` : ''}`
       const response = await fetch(url, {
         headers: getAuthHeaders(),
@@ -419,18 +433,9 @@ function CadastroListPage({ cadastro }: CadastroListPageProps) {
     setMessage('')
     setModalMode(null)
     setDeleteRow(null)
-    void loadRows('')
+    void loadRows()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cadastro])
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      void loadRows(search)
-    }, 350)
-
-    return () => window.clearTimeout(timeoutId)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search])
 
   return (
     <section className="cadastro-page">

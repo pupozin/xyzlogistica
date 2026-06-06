@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import MainLayout from './layouts/MainLayout/MainLayout'
 import CadastroListPage from './pages/Cadastros/CadastroListPage'
+import JanelaAgendamentosPage from './pages/Configuracoes/JanelaAgendamentosPage'
+import InventarioPage from './pages/Inventario/InventarioPage'
 import Login from './pages/Login/Login'
 import PlaceholderPage from './pages/PlaceholderPage'
 
@@ -51,11 +53,8 @@ function App() {
           <Route path="/cadastros/produto" element={<CadastroListPage cadastro="produto" />} />
           <Route path="/cadastros/usuario" element={<CadastroListPage cadastro="usuario" />} />
           <Route path="/cadastros/perfil" element={<CadastroListPage cadastro="perfil" />} />
-          <Route
-            path="/configuracoes/janela-agendamentos"
-            element={<PlaceholderPage title="Janela agendamentos" />}
-          />
-          <Route path="/inventario" element={<PlaceholderPage title="Inventário" />} />
+          <Route path="/configuracoes/janela-agendamentos" element={<JanelaAgendamentosPage />} />
+          <Route path="/inventario" element={<InventarioPage />} />
           <Route path="/relatorios" element={<PlaceholderPage title="Relatórios" />} />
           <Route path="*" element={<Navigate to="/agendamentos/inbound" replace />} />
         </Route>
