@@ -98,6 +98,28 @@ function formatCnpj(value: string) {
     .replace(/(\d{4})(\d)/, '$1-$2')
 }
 
+function formatCnh(value: string) {
+  return value.replace(/\D/g, '').slice(0, 11)
+}
+
+function formatTelefone(value: string) {
+  const digits = value.replace(/\D/g, '').slice(0, 11)
+
+  if (digits.length <= 2) {
+    return digits
+  }
+
+  if (digits.length <= 6) {
+    return digits.replace(/^(\d{2})(\d)/, '($1) $2')
+  }
+
+  if (digits.length <= 10) {
+    return digits.replace(/^(\d{2})(\d{4})(\d)/, '($1) $2-$3')
+  }
+
+  return digits.replace(/^(\d{2})(\d{5})(\d)/, '($1) $2-$3')
+}
+
 function CadastroListPage({ cadastro }: CadastroListPageProps) {
   const config = cadastroConfigs[cadastro]
   const [rows, setRows] = useState<GridRow[]>([])
@@ -231,6 +253,11 @@ function CadastroListPage({ cadastro }: CadastroListPageProps) {
         values.cnpj = formatCnpj(String(values.cnpj ?? ''))
       }
 
+      if (cadastro === 'motorista') {
+        values.cnh = formatCnh(String(values.cnh ?? ''))
+        values.telefone = formatTelefone(String(values.telefone ?? ''))
+      }
+
       if (cadastro === 'perfil') {
         values.permissaoIds = await loadPerfilPermissoes(row.id)
       }
@@ -254,7 +281,19 @@ function CadastroListPage({ cadastro }: CadastroListPageProps) {
   }
 
   function updateField(field: CadastroFormField, value: string) {
-    const nextValue = cadastro === 'transportadora' && field.name === 'cnpj' ? formatCnpj(value) : value
+    let nextValue = value
+
+    if (cadastro === 'transportadora' && field.name === 'cnpj') {
+      nextValue = formatCnpj(value)
+    }
+
+    if (cadastro === 'motorista' && field.name === 'cnh') {
+      nextValue = formatCnh(value)
+    }
+
+    if (cadastro === 'motorista' && field.name === 'telefone') {
+      nextValue = formatTelefone(value)
+    }
 
     setFormValues((current) => ({
       ...current,
@@ -545,7 +584,15 @@ function CadastroListPage({ cadastro }: CadastroListPageProps) {
                             value={String(value ?? '')}
                             required={field.required}
                             placeholder={field.placeholder}
-                            maxLength={cadastro === 'transportadora' && field.name === 'cnpj' ? 18 : undefined}
+                            maxLength={
+                              cadastro === 'transportadora' && field.name === 'cnpj'
+                                ? 18
+                                : cadastro === 'motorista' && field.name === 'cnh'
+                                  ? 11
+                                  : cadastro === 'motorista' && field.name === 'telefone'
+                                    ? 15
+                                    : undefined
+                            }
                             onChange={(event) => updateField(field, event.target.value)}
                           />
                         )}
