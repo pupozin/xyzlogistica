@@ -75,6 +75,32 @@ namespace ZyxLogistics.Api.Repositories
             return horarios;
         }
 
+        public async Task<IReadOnlyList<Motorista>> ListarMotoristasDisponiveisAsync()
+        {
+            var motoristas = new List<Motorista>();
+
+            await using var connection = _connectionFactory.CreateConnection();
+            await using var command = CreateProcedureCommand(connection, "dbo.sp_Agendamento_ListarMotoristasDisponiveis");
+
+            await connection.OpenAsync();
+            await using var reader = await command.ExecuteReaderAsync();
+
+            while (await reader.ReadAsync())
+            {
+                motoristas.Add(new Motorista
+                {
+                    Id = reader.GetInt32("Id"),
+                    Nome = reader.GetString("Nome"),
+                    Cnh = reader.GetString("Cnh"),
+                    Telefone = reader.GetString("Telefone"),
+                    Ativo = true,
+                    CriadoEm = DateTime.MinValue
+                });
+            }
+
+            return motoristas;
+        }
+
         public async Task<IReadOnlyList<VeiculoDisponivel>> ListarVeiculosDisponiveisAsync(int transportadoraId)
         {
             var veiculos = new List<VeiculoDisponivel>();

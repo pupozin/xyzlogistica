@@ -2,6 +2,7 @@ export type CadastroKey =
   | 'transportadora'
   | 'motorista'
   | 'veiculo'
+  | 'local'
   | 'produto'
   | 'usuario'
   | 'perfil'
@@ -177,6 +178,36 @@ export const cadastroConfigs: Record<CadastroKey, CadastroConfig> = {
         optionsEndpoint: '/api/transportadoras',
         optionLabelField: 'nome',
         optionValueField: 'id',
+      },
+    ],
+  },
+  local: {
+    key: 'local',
+    title: 'Local',
+    newButtonLabel: '+ Novo local',
+    saveButtonLabel: 'Salvar local',
+    endpoint: '/api/locais',
+    searchPlaceholder: 'Descrição',
+    buildQuery: (search) => {
+      const query = new URLSearchParams()
+      if (search) {
+        query.set('descricao', search)
+      }
+      return query
+    },
+    columns: [
+      { header: 'Descrição', field: 'descricao' },
+      { header: 'Criado em', field: 'criadoEm', type: 'date' },
+      { header: 'Atualizado em', field: 'atualizadoEm', type: 'date' },
+    ],
+    formFields: [
+      {
+        name: 'descricao',
+        label: 'Descrição',
+        type: 'text',
+        placeholder: 'Digite a descrição do local',
+        required: true,
+        icon: 'building',
       },
     ],
   },

@@ -408,10 +408,6 @@ BEGIN
 
     CREATE INDEX IX_Agendamento_DataHoraAgendada ON dbo.Agendamento(DataHoraAgendada);
 
-    CREATE UNIQUE INDEX UX_Agendamento_Horario_Ativo
-        ON dbo.Agendamento(DataHoraAgendada)
-        WHERE StatusId IN (1, 2, 3);
-
     CREATE UNIQUE INDEX UX_Agendamento_Motorista_Ativo
         ON dbo.Agendamento(MotoristaId)
         WHERE StatusId IN (1, 2, 3);
@@ -487,11 +483,9 @@ BEGIN
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_Agendamento_Horario_Ativo' AND object_id = OBJECT_ID(N'dbo.Agendamento'))
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_Agendamento_Horario_Ativo' AND object_id = OBJECT_ID(N'dbo.Agendamento'))
 BEGIN
-    CREATE UNIQUE INDEX UX_Agendamento_Horario_Ativo
-        ON dbo.Agendamento(DataHoraAgendada)
-        WHERE StatusId IN (1, 2, 3);
+    DROP INDEX UX_Agendamento_Horario_Ativo ON dbo.Agendamento;
 END
 GO
 
@@ -1449,6 +1443,7 @@ BEGIN
     WHERE a.DataHoraAgendada >= @DataInicio
       AND a.DataHoraAgendada < @DataFim
       AND a.OperacaoId = @OperacaoId
+      AND a.StatusId IN (1, 2, 3, 4)
     ORDER BY a.DataHoraAgendada, a.Id;
 END
 GO
@@ -1501,6 +1496,7 @@ BEGIN
     DECLARE @IntervaloMinutos INT;
     DECLARE @HoraInicio TIME(0);
     DECLARE @HoraFim TIME(0);
+    DECLARE @CapacidadeLocais INT;
 
     SELECT TOP (1)
         @IntervaloMinutos = IntervaloMinutos,
@@ -1515,6 +1511,15 @@ BEGIN
         THROW 50008, 'Configuracao de agendamento ativa nao encontrada.', 1;
     END
 
+    SELECT @CapacidadeLocais = COUNT(1)
+    FROM dbo.Local
+    WHERE Ativo = 1;
+
+    IF @CapacidadeLocais <= 0
+    BEGIN
+        THROW 50008, 'Nenhum local ativo cadastrado para permitir agendamentos.', 1;
+    END
+
     ;WITH Horarios AS
     (
         SELECT DATEADD(MINUTE, DATEDIFF(MINUTE, CAST('00:00' AS TIME), @HoraInicio), CAST(@Data AS DATETIME2(0))) AS DataHora
@@ -1527,13 +1532,13 @@ BEGIN
         h.DataHora,
         CONVERT(VARCHAR(5), CAST(h.DataHora AS TIME(0)), 108) AS Horario
     FROM Horarios h
-    WHERE NOT EXISTS
+    WHERE
     (
-        SELECT 1
+        SELECT COUNT(1)
         FROM dbo.Agendamento a
         WHERE a.DataHoraAgendada = h.DataHora
           AND a.StatusId IN (1, 2, 3)
-    )
+    ) < @CapacidadeLocais
     ORDER BY h.DataHora
     OPTION (MAXRECURSION 1440);
 END
@@ -1572,6 +1577,29 @@ BEGIN
 END
 GO
 
+CREATE OR ALTER PROCEDURE dbo.sp_Agendamento_ListarMotoristasDisponiveis
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        m.Id,
+        m.Nome,
+        m.Cnh,
+        m.Telefone
+    FROM dbo.Motorista m
+    WHERE m.Ativo = 1
+      AND NOT EXISTS
+      (
+          SELECT 1
+          FROM dbo.Agendamento a
+          WHERE a.MotoristaId = m.Id
+            AND a.StatusId IN (1, 2, 3)
+      )
+    ORDER BY m.Nome;
+END
+GO
+
 CREATE OR ALTER PROCEDURE dbo.sp_Agendamento_Inserir
     @OperacaoId INT,
     @TransportadoraId INT,
@@ -1587,6 +1615,7 @@ BEGIN
     DECLARE @HoraFim TIME(0);
     DECLARE @HoraAgendada TIME(0) = CAST(@DataHoraAgendada AS TIME(0));
     DECLARE @MinutosDesdeInicio INT;
+    DECLARE @CapacidadeLocais INT;
 
     SELECT TOP (1)
         @IntervaloMinutos = IntervaloMinutos,
@@ -1599,6 +1628,15 @@ BEGIN
     IF @IntervaloMinutos IS NULL
     BEGIN
         THROW 50008, 'Configuracao de agendamento ativa nao encontrada.', 1;
+    END
+
+    SELECT @CapacidadeLocais = COUNT(1)
+    FROM dbo.Local
+    WHERE Ativo = 1;
+
+    IF @CapacidadeLocais <= 0
+    BEGIN
+        THROW 50008, 'Nenhum local ativo cadastrado para permitir agendamentos.', 1;
     END
 
     IF NOT EXISTS (SELECT 1 FROM dbo.Operacao WHERE Id = @OperacaoId AND Ativo = 1)
@@ -1633,9 +1671,9 @@ BEGIN
         THROW 50007, 'Horario nao respeita o intervalo configurado.', 1;
     END
 
-    IF EXISTS (SELECT 1 FROM dbo.Agendamento WHERE DataHoraAgendada = @DataHoraAgendada AND StatusId IN (1, 2, 3))
+    IF (SELECT COUNT(1) FROM dbo.Agendamento WHERE DataHoraAgendada = @DataHoraAgendada AND StatusId IN (1, 2, 3)) >= @CapacidadeLocais
     BEGIN
-        THROW 50007, 'Horario ja ocupado.', 1;
+        THROW 50007, 'Horario ja atingiu a capacidade de locais disponiveis.', 1;
     END
 
     IF EXISTS (SELECT 1 FROM dbo.Agendamento WHERE MotoristaId = @MotoristaId AND StatusId IN (1, 2, 3))
@@ -1671,6 +1709,7 @@ BEGIN
     DECLARE @HoraFim TIME(0);
     DECLARE @HoraAgendada TIME(0) = CAST(@DataHoraAgendada AS TIME(0));
     DECLARE @MinutosDesdeInicio INT;
+    DECLARE @CapacidadeLocais INT;
 
     IF NOT EXISTS (SELECT 1 FROM dbo.Agendamento WHERE Id = @Id AND StatusId = 1)
     BEGIN
@@ -1688,6 +1727,15 @@ BEGIN
     IF @IntervaloMinutos IS NULL
     BEGIN
         THROW 50008, 'Configuracao de agendamento ativa nao encontrada.', 1;
+    END
+
+    SELECT @CapacidadeLocais = COUNT(1)
+    FROM dbo.Local
+    WHERE Ativo = 1;
+
+    IF @CapacidadeLocais <= 0
+    BEGIN
+        THROW 50008, 'Nenhum local ativo cadastrado para permitir agendamentos.', 1;
     END
 
     IF NOT EXISTS (SELECT 1 FROM dbo.Operacao WHERE Id = @OperacaoId AND Ativo = 1)
@@ -1722,9 +1770,9 @@ BEGIN
         THROW 50007, 'Horario nao respeita o intervalo configurado.', 1;
     END
 
-    IF EXISTS (SELECT 1 FROM dbo.Agendamento WHERE Id <> @Id AND DataHoraAgendada = @DataHoraAgendada AND StatusId IN (1, 2, 3))
+    IF (SELECT COUNT(1) FROM dbo.Agendamento WHERE Id <> @Id AND DataHoraAgendada = @DataHoraAgendada AND StatusId IN (1, 2, 3)) >= @CapacidadeLocais
     BEGIN
-        THROW 50007, 'Horario ja ocupado.', 1;
+        THROW 50007, 'Horario ja atingiu a capacidade de locais disponiveis.', 1;
     END
 
     IF EXISTS (SELECT 1 FROM dbo.Agendamento WHERE Id <> @Id AND MotoristaId = @MotoristaId AND StatusId IN (1, 2, 3))

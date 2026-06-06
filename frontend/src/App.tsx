@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import MainLayout from './layouts/MainLayout/MainLayout'
+import AgendamentosPage from './pages/Agendamentos/AgendamentosPage'
 import CadastroListPage from './pages/Cadastros/CadastroListPage'
 import JanelaAgendamentosPage from './pages/Configuracoes/JanelaAgendamentosPage'
 import InventarioPage from './pages/Inventario/InventarioPage'
@@ -43,13 +44,14 @@ function App() {
       <Routes>
         <Route element={<MainLayout user={user} />}>
           <Route index element={<Navigate to="/agendamentos/inbound" replace />} />
-          <Route path="/agendamentos/inbound" element={<PlaceholderPage title="Agendamentos Inbound" />} />
-          <Route path="/agendamentos/outbound" element={<PlaceholderPage title="Agendamentos Outbound" />} />
+          <Route path="/agendamentos/inbound" element={<AgendamentosPage mode="inbound" />} />
+          <Route path="/agendamentos/outbound" element={<AgendamentosPage mode="outbound" />} />
           <Route path="/operacao/inbound" element={<PlaceholderPage title="Operação Inbound" />} />
           <Route path="/operacao/outbound" element={<PlaceholderPage title="Operação Outbound" />} />
           <Route path="/cadastros/transportadora" element={<CadastroListPage cadastro="transportadora" />} />
           <Route path="/cadastros/motorista" element={<CadastroListPage cadastro="motorista" />} />
           <Route path="/cadastros/veiculo" element={<CadastroListPage cadastro="veiculo" />} />
+          <Route path="/cadastros/local" element={<CadastroListPage cadastro="local" />} />
           <Route path="/cadastros/produto" element={<CadastroListPage cadastro="produto" />} />
           <Route path="/cadastros/usuario" element={<CadastroListPage cadastro="usuario" />} />
           <Route path="/cadastros/perfil" element={<CadastroListPage cadastro="perfil" />} />

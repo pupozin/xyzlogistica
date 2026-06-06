@@ -60,6 +60,7 @@ const menuGroups: MenuGroup[] = [
       { label: 'Transportadora', path: '/cadastros/transportadora' },
       { label: 'Motorista', path: '/cadastros/motorista' },
       { label: 'Veículo', path: '/cadastros/veiculo' },
+      { label: 'Local', path: '/cadastros/local' },
       { label: 'Produto', path: '/cadastros/produto' },
       { label: 'Usuário', path: '/cadastros/usuario' },
       { label: 'Perfil', path: '/cadastros/perfil' },

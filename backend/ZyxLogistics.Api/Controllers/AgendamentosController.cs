@@ -54,6 +54,14 @@ namespace ZyxLogistics.Api.Controllers
             return Ok(horarios);
         }
 
+        [HttpGet("motoristas-disponiveis")]
+        [Authorize(Policy = "agendamentos.visualizar")]
+        public async Task<IActionResult> ListarMotoristasDisponiveis()
+        {
+            var motoristas = await _agendamentoRepository.ListarMotoristasDisponiveisAsync();
+            return Ok(motoristas);
+        }
+
         [HttpGet("veiculos-disponiveis")]
         [Authorize(Policy = "agendamentos.visualizar")]
         public async Task<IActionResult> ListarVeiculosDisponiveis([FromQuery] int transportadoraId)
