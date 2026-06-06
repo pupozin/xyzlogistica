@@ -121,10 +121,15 @@ function OperacoesPage({ mode }: OperacoesPageProps) {
   const [produtoId, setProdutoId] = useState('')
   const [quantidade, setQuantidade] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const [toastMessage, setToastMessage] = useState('')
 
   const activeAba = useMemo(() => {
     return abas.find((aba) => aba.statusId === activeStatusId) ?? abas[0]
   }, [abas, activeStatusId])
+
+  function showToast(messageText: string) {
+    setToastMessage(messageText)
+  }
 
   async function loadAbas(searchTerm = search) {
     setIsLoading(true)
@@ -303,7 +308,7 @@ function OperacoesPage({ mode }: OperacoesPageProps) {
       setQuantidade('')
       await loadItems(selectedAgendamento.id)
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Erro ao adicionar item.')
+      showToast(error instanceof Error ? error.message : 'Erro ao adicionar item.')
     } finally {
       setIsSaving(false)
     }
@@ -359,6 +364,15 @@ function OperacoesPage({ mode }: OperacoesPageProps) {
     return () => window.clearTimeout(timeoutId)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search])
+
+  useEffect(() => {
+    if (!toastMessage) {
+      return undefined
+    }
+
+    const timeoutId = window.setTimeout(() => setToastMessage(''), 3000)
+    return () => window.clearTimeout(timeoutId)
+  }, [toastMessage])
 
   return (
     <section className="operacao-page">
@@ -575,7 +589,7 @@ function OperacoesPage({ mode }: OperacoesPageProps) {
                 </div>
               </label>
 
-              <button className="modal-save-button" type="submit" disabled={isSaving}>
+              <button className="modal-save-button operacao-add-item-button" type="submit" disabled={isSaving}>
                 <FontAwesomeIcon icon={faFloppyDisk} />
                 Adicionar item
               </button>
@@ -586,6 +600,7 @@ function OperacoesPage({ mode }: OperacoesPageProps) {
                 <div className="operacao-item-row" key={item.id}>
                   <span>{item.produtoDescricao}</span>
                   <input
+                    key={`${item.id}-${item.quantidade}`}
                     type="number"
                     min="0.001"
                     step="0.001"
@@ -606,6 +621,12 @@ function OperacoesPage({ mode }: OperacoesPageProps) {
               {items.length === 0 && <span className="empty-cell">Nenhum item adicionado.</span>}
             </div>
           </div>
+        </div>
+      )}
+
+      {toastMessage && (
+        <div className="operacao-toast" role="status" aria-live="polite">
+          <span>{toastMessage}</span>
         </div>
       )}
     </section>

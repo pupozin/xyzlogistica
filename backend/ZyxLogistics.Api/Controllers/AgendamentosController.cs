@@ -132,14 +132,21 @@ namespace ZyxLogistics.Api.Controllers
         [Authorize(Policy = "agendamentos.cancelar")]
         public async Task<IActionResult> Cancelar(int id)
         {
-            var cancelado = await _agendamentoRepository.CancelarAsync(id);
-
-            if (!cancelado)
+            try
             {
-                return NotFound();
-            }
+                var cancelado = await _agendamentoRepository.CancelarAsync(id);
 
-            return NoContent();
+                if (!cancelado)
+                {
+                    return NotFound();
+                }
+
+                return NoContent();
+            }
+            catch (SqlException ex) when (ex.Number == 50007)
+            {
+                return Conflict(new { message = ex.Message });
+            }
         }
 
         [HttpPut("{id:int}/enviar-doca")]

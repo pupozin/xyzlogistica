@@ -1800,11 +1800,21 @@ BEGIN
 END
 GO
 
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
 CREATE OR ALTER PROCEDURE dbo.sp_Agendamento_Cancelar
     @Id INT
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    IF EXISTS (SELECT 1 FROM dbo.Agendamento WHERE Id = @Id AND StatusId = 4)
+    BEGIN
+        THROW 50007, 'Agenda finalizada nao pode ser cancelada.', 1;
+    END
 
     UPDATE dbo.Agendamento
     SET
@@ -2487,12 +2497,12 @@ BEGIN
         THROW 50004, 'Produto nao encontrado ou inativo.', 1;
     END
 
-    IF EXISTS (SELECT 1 FROM dbo.OperacaoItem WHERE AgendamentoId = @AgendamentoId AND ProdutoId = @ProdutoId)
-    BEGIN
-        THROW 50001, 'Produto ja informado neste agendamento. Edite a quantidade do item existente.', 1;
-    END
-
     BEGIN TRANSACTION;
+
+        SELECT @ItemId = Id
+        FROM dbo.OperacaoItem WITH (UPDLOCK, HOLDLOCK)
+        WHERE AgendamentoId = @AgendamentoId
+          AND ProdutoId = @ProdutoId;
 
         SELECT @EstoqueAtual = QuantidadeAtual
         FROM dbo.Inventario WITH (UPDLOCK, HOLDLOCK)
@@ -2517,10 +2527,22 @@ BEGIN
             DataUltimaAtualizacao = SYSDATETIME()
         WHERE ProdutoId = @ProdutoId;
 
-        INSERT INTO dbo.OperacaoItem (AgendamentoId, ProdutoId, Quantidade)
-        VALUES (@AgendamentoId, @ProdutoId, @Quantidade);
+        IF @ItemId IS NULL
+        BEGIN
+            INSERT INTO dbo.OperacaoItem (AgendamentoId, ProdutoId, Quantidade)
+            VALUES (@AgendamentoId, @ProdutoId, @Quantidade);
 
-        SET @ItemId = CAST(SCOPE_IDENTITY() AS INT);
+            SET @ItemId = CAST(SCOPE_IDENTITY() AS INT);
+        END
+        ELSE
+        BEGIN
+            UPDATE dbo.OperacaoItem
+            SET
+                Quantidade = Quantidade + @Quantidade,
+                AtualizadoEm = SYSDATETIME()
+            WHERE Id = @ItemId
+              AND AgendamentoId = @AgendamentoId;
+        END
 
     COMMIT TRANSACTION;
 

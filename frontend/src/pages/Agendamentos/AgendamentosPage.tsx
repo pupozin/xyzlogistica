@@ -375,6 +375,11 @@ function AgendamentosPage({ mode }: AgendamentosPageProps) {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+
+    if (modalMode === 'edit' && editingAgendamento?.statusId !== 1) {
+      return
+    }
+
     setIsSaving(true)
     setMessage('')
 
@@ -437,6 +442,8 @@ function AgendamentosPage({ mode }: AgendamentosPageProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startDate, mode])
 
+  const canEditAgendamento = modalMode === 'create' || editingAgendamento?.statusId === 1
+
   return (
     <section className="cadastro-page">
       <header className="cadastro-header">
@@ -478,25 +485,27 @@ function AgendamentosPage({ mode }: AgendamentosPageProps) {
                     type="button"
                     onClick={() => void openEditModal(agendamento)}
                   >
-                    <span
-                      className="agenda-cancel-button"
-                      role="button"
-                      tabIndex={0}
-                      aria-label="Cancelar agenda"
-                      onClick={(event) => {
-                        event.stopPropagation()
-                        setCancelAgendamento(agendamento)
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault()
+                    {agendamento.statusId !== 4 && (
+                      <span
+                        className="agenda-cancel-button"
+                        role="button"
+                        tabIndex={0}
+                        aria-label="Cancelar agenda"
+                        onClick={(event) => {
                           event.stopPropagation()
                           setCancelAgendamento(agendamento)
-                        }
-                      }}
-                    >
-                      <FontAwesomeIcon icon={faXmark} />
-                    </span>
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault()
+                            event.stopPropagation()
+                            setCancelAgendamento(agendamento)
+                          }
+                        }}
+                      >
+                        <FontAwesomeIcon icon={faXmark} />
+                      </span>
+                    )}
                     <span className="agenda-note-title">
                       <FontAwesomeIcon icon={faTruck} />
                       {agendamento.transportadoraNome} - {String(agendamento.id).padStart(4, '0')}
@@ -544,6 +553,7 @@ function AgendamentosPage({ mode }: AgendamentosPageProps) {
                   <FontAwesomeIcon icon={faBuilding} />
                   <select
                     required
+                    disabled={!canEditAgendamento}
                     value={transportadoraId}
                     onChange={(event) => void handleTransportadoraChange(event.target.value)}
                   >
@@ -561,7 +571,12 @@ function AgendamentosPage({ mode }: AgendamentosPageProps) {
                 <span>Veículo *</span>
                 <div className="input-shell">
                   <FontAwesomeIcon icon={faTruck} />
-                  <select required value={veiculoId} onChange={(event) => setVeiculoId(event.target.value)}>
+                  <select
+                    required
+                    disabled={!canEditAgendamento}
+                    value={veiculoId}
+                    onChange={(event) => setVeiculoId(event.target.value)}
+                  >
                     <option value="">
                       {transportadoraId ? 'Selecione o veículo' : 'Selecione a transportadora primeiro'}
                     </option>
@@ -578,7 +593,12 @@ function AgendamentosPage({ mode }: AgendamentosPageProps) {
                 <span>Motorista *</span>
                 <div className="input-shell">
                   <FontAwesomeIcon icon={faUser} />
-                  <select required value={motoristaId} onChange={(event) => setMotoristaId(event.target.value)}>
+                  <select
+                    required
+                    disabled={!canEditAgendamento}
+                    value={motoristaId}
+                    onChange={(event) => setMotoristaId(event.target.value)}
+                  >
                     <option value="">Selecione o motorista</option>
                     {motoristas.map((option) => (
                       <option key={option.id} value={option.id}>
@@ -595,6 +615,7 @@ function AgendamentosPage({ mode }: AgendamentosPageProps) {
                   <FontAwesomeIcon icon={faCalendarDay} />
                   <input
                     required
+                    disabled={!canEditAgendamento}
                     type="date"
                     value={agendaDate}
                     onChange={(event) => void handleAgendaDateChange(event.target.value)}
@@ -606,7 +627,12 @@ function AgendamentosPage({ mode }: AgendamentosPageProps) {
                 <span>Horário *</span>
                 <div className="input-shell">
                   <FontAwesomeIcon icon={faClock} />
-                  <select required value={agendaTime} onChange={(event) => setAgendaTime(event.target.value)}>
+                  <select
+                    required
+                    disabled={!canEditAgendamento}
+                    value={agendaTime}
+                    onChange={(event) => setAgendaTime(event.target.value)}
+                  >
                     <option value="">Selecione o horário</option>
                     {horarios.map((option) => (
                       <option key={option.horario} value={option.horario}>
@@ -622,10 +648,12 @@ function AgendamentosPage({ mode }: AgendamentosPageProps) {
               <button className="modal-cancel-button" type="button" onClick={closeModal}>
                 Cancelar
               </button>
-              <button className="modal-save-button" type="submit" disabled={isSaving}>
-                <FontAwesomeIcon icon={faFloppyDisk} />
-                {isSaving ? 'Salvando...' : 'Salvar agendamento'}
-              </button>
+              {canEditAgendamento && (
+                <button className="modal-save-button" type="submit" disabled={isSaving}>
+                  <FontAwesomeIcon icon={faFloppyDisk} />
+                  {isSaving ? 'Salvando...' : 'Salvar agendamento'}
+                </button>
+              )}
             </footer>
           </form>
         </div>

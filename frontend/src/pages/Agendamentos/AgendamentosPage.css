@@ -162,6 +162,17 @@
   gap: 24px;
 }
 
+.agenda-modal-grid .input-shell:has(:disabled) {
+  background: #f7f7f7;
+  color: #9aa0a8;
+}
+
+.agenda-modal-grid input:disabled,
+.agenda-modal-grid select:disabled {
+  color: #777777;
+  cursor: not-allowed;
+}
+
 .agenda-message {
   margin-top: 16px;
 }

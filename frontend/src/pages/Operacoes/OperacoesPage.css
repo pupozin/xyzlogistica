@@ -162,6 +162,14 @@
   color: #000000;
 }
 
+.operacao-add-item-button {
+  width: 100%;
+  height: 50px;
+  border-radius: 9px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
 .operacao-items-list {
   display: grid;
   gap: 12px;
@@ -202,6 +210,40 @@
   background: #ffffff;
   color: #d30a0a;
   cursor: pointer;
+}
+
+.operacao-toast {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 1200;
+  max-width: min(380px, calc(100vw - 48px));
+  border-left: 5px solid #d30a0a;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+  padding: 16px 18px;
+  color: #000000;
+  animation: operacao-toast-in 0.18s ease-out;
+}
+
+.operacao-toast span {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+@keyframes operacao-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (max-width: 980px) {
