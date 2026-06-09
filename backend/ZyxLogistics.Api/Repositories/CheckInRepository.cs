@@ -11,16 +11,16 @@ namespace ZyxLogistics.Api.Repositories
     {
         private readonly DbConnectionFactory _connectionFactory;
         private readonly ISmsService _smsService;
-        private readonly IWebHostEnvironment _environment;
+        private readonly IConfiguration _configuration;
 
         public CheckInRepository(
             DbConnectionFactory connectionFactory,
             ISmsService smsService,
-            IWebHostEnvironment environment)
+            IConfiguration configuration)
         {
             _connectionFactory = connectionFactory;
             _smsService = smsService;
-            _environment = environment;
+            _configuration = configuration;
         }
 
         public async Task<CheckInCodigoResponse> SolicitarCodigoAsync(SolicitarCheckInCodigoRequest request)
@@ -46,7 +46,7 @@ namespace ZyxLogistics.Api.Repositories
                 MotoristaNome = reader.GetString("MotoristaNome"),
                 TelefoneMascarado = reader.GetString("TelefoneMascarado"),
                 ExpiraEm = reader.GetDateTime("ExpiraEm"),
-                CodigoDesenvolvimento = _environment.IsDevelopment() ? reader.GetString("CodigoDesenvolvimento") : null,
+                CodigoDesenvolvimento = IsSimulatedSms() ? reader.GetString("CodigoDesenvolvimento") : null,
                 Telefone = reader.GetString("Telefone"),
                 Mensagem = reader.GetString("Mensagem")
             };
@@ -75,6 +75,12 @@ namespace ZyxLogistics.Api.Repositories
             {
                 CommandType = CommandType.StoredProcedure
             };
+        }
+
+        private bool IsSimulatedSms()
+        {
+            var provider = _configuration["Sms:Provider"];
+            return string.Equals(provider, "Simulated", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

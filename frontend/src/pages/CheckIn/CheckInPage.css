@@ -294,6 +294,23 @@
   color: #e30613;
 }
 
+.checkin-dev-code {
+  border: 1px dashed #f4c35c;
+  border-radius: 7px;
+  background: #fff9ed;
+  padding: 10px 12px;
+  color: #515967;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.checkin-dev-code strong {
+  color: #e30613;
+  font-size: 14px;
+  letter-spacing: 0;
+}
+
 .success-content {
   min-height: 430px;
   display: grid;

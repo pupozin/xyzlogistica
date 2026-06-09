@@ -263,6 +263,12 @@ function CheckInPage() {
                   </span>
                 </div>
 
+                {checkInInfo?.codigoDesenvolvimento && (
+                  <div className="checkin-dev-code">
+                    Codigo de teste: <strong>{checkInInfo.codigoDesenvolvimento}</strong>
+                  </div>
+                )}
+
                 <button className="checkin-primary" type="submit" disabled={isLoading || !isCodeComplete}>
                   Confirmar
                 </button>

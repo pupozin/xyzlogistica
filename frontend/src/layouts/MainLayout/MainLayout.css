@@ -173,14 +173,21 @@
 .user-icon {
   width: 18px;
   height: 18px;
-  display: grid;
-  place-items: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 0;
   border-radius: 50%;
   background: #ffcc00;
   color: #d30a0a;
   font-size: 10px;
+  line-height: 1;
+  padding: 0;
   cursor: pointer;
+}
+
+.user-icon svg {
+  display: block;
 }
 
 .user-menu {
