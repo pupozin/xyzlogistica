@@ -219,7 +219,7 @@ Caso a porta esteja ocupada, ele pode usar outra porta, como `5174`.
 3. Administrador cria usuários e vincula cada um a um perfil.
 4. Cadastros base são preenchidos: transportadoras, motoristas, veículos, locais/docas e produtos.
 5. Usuário cria agendamento inbound ou outbound.
-6. Motorista faz check-in pela tela `/checkin`, informando CNH e código SMS.
+6. Motorista faz check-in pela tela `/checkin`, acessada diretamente por URL, sem atalho no menu principal, informando CNH e código SMS.
 7. A tela `/checkin` representa um totem/tablet na recepção do CD, onde o próprio motorista realiza a identificação antes de iniciar a operação.
 8. Operação visualiza agendas com check-in realizado.
 9. Usuário envia a agenda para doca, informando o local.
