@@ -13,6 +13,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import '../Cadastros/CadastroListPage.css'
 import './OperacoesPage.css'
+import { hasPermission, PermissionUser } from '../../security/permissions'
 
 type OperacaoMode = 'inbound' | 'outbound'
 
@@ -82,6 +83,20 @@ function getAuthHeaders(includeJson = false) {
   return headers
 }
 
+function getStoredUser(): PermissionUser | null {
+  const rawUser = localStorage.getItem('zyx.user')
+
+  if (!rawUser) {
+    return null
+  }
+
+  try {
+    return JSON.parse(rawUser) as PermissionUser
+  } catch {
+    return null
+  }
+}
+
 async function readErrorMessage(response: Response, fallback: string) {
   try {
     const data = (await response.json()) as { message?: string }
@@ -106,6 +121,10 @@ function formatDateTime(value?: string | null) {
 }
 
 function OperacoesPage({ mode }: OperacoesPageProps) {
+  const user = useMemo(() => getStoredUser(), [])
+  const canSendToDock = hasPermission(user, 'operacoes.enviar_doca')
+  const canEditItems = hasPermission(user, 'operacoes.enviar_doca')
+  const canFinalize = hasPermission(user, 'operacoes.finalizar')
   const [abas, setAbas] = useState<OperacaoAba[]>([])
   const [activeStatusId, setActiveStatusId] = useState(2)
   const [search, setSearch] = useState('')
@@ -203,6 +222,10 @@ function OperacoesPage({ mode }: OperacoesPageProps) {
   }
 
   async function openDocaModal(agendamento: Agendamento) {
+    if (!canSendToDock) {
+      return
+    }
+
     setSelectedAgendamento(agendamento)
     setLocalId('')
     setDocaModalOpen(true)
@@ -216,6 +239,10 @@ function OperacoesPage({ mode }: OperacoesPageProps) {
   }
 
   async function openItemsModal(agendamento: Agendamento) {
+    if (!canEditItems) {
+      return
+    }
+
     setSelectedAgendamento(agendamento)
     setProdutoId('')
     setQuantidade('')
@@ -232,7 +259,7 @@ function OperacoesPage({ mode }: OperacoesPageProps) {
   async function handleEnviarDoca(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    if (!selectedAgendamento) {
+    if (!selectedAgendamento || !canSendToDock) {
       return
     }
 
@@ -262,6 +289,10 @@ function OperacoesPage({ mode }: OperacoesPageProps) {
   }
 
   async function handleFinalizar(agendamento: Agendamento) {
+    if (!canFinalize) {
+      return
+    }
+
     setIsSaving(true)
     setMessage('')
 
@@ -288,7 +319,7 @@ function OperacoesPage({ mode }: OperacoesPageProps) {
   async function handleAddItem(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    if (!selectedAgendamento) {
+    if (!selectedAgendamento || !canEditItems) {
       return
     }
 
@@ -320,7 +351,7 @@ function OperacoesPage({ mode }: OperacoesPageProps) {
   }
 
   async function handleUpdateItem(item: OperacaoItem, nextQuantidade: string) {
-    if (!selectedAgendamento) {
+    if (!selectedAgendamento || !canEditItems) {
       return
     }
 
@@ -339,7 +370,7 @@ function OperacoesPage({ mode }: OperacoesPageProps) {
   }
 
   async function handleDeleteItem(item: OperacaoItem) {
-    if (!selectedAgendamento) {
+    if (!selectedAgendamento || !canEditItems) {
       return
     }
 
@@ -378,6 +409,9 @@ function OperacoesPage({ mode }: OperacoesPageProps) {
     const timeoutId = window.setTimeout(() => setToastMessage(''), 3000)
     return () => window.clearTimeout(timeoutId)
   }, [toastMessage])
+
+  const canUseCurrentActions =
+    (activeStatusId === 2 && canSendToDock) || (activeStatusId === 3 && (canEditItems || canFinalize))
 
   return (
     <section className="operacao-page">
@@ -427,7 +461,7 @@ function OperacoesPage({ mode }: OperacoesPageProps) {
                 <th>Motorista</th>
                 <th>Transportadora</th>
                 <th>Placa</th>
-                {activeStatusId !== 4 && <th>Ações</th>}
+                {canUseCurrentActions && <th>Ações</th>}
               </tr>
             </thead>
             <tbody>
@@ -444,10 +478,10 @@ function OperacoesPage({ mode }: OperacoesPageProps) {
                   <td>{agendamento.motoristaNome}</td>
                   <td>{agendamento.transportadoraNome}</td>
                   <td>{agendamento.veiculoPlaca}</td>
-                  {activeStatusId !== 4 && (
+                  {canUseCurrentActions && (
                     <td>
                       <div className="operacao-actions">
-                        {activeStatusId === 3 && (
+                        {activeStatusId === 3 && canEditItems && (
                           <button
                             className="operacao-action-button neutral"
                             type="button"
@@ -457,16 +491,18 @@ function OperacoesPage({ mode }: OperacoesPageProps) {
                             <FontAwesomeIcon icon={faPen} />
                           </button>
                         )}
-                        <button
-                          className="operacao-action-button"
-                          type="button"
-                          onClick={() =>
-                            activeStatusId === 2 ? void openDocaModal(agendamento) : setFinalizeAgendamento(agendamento)
-                          }
-                          aria-label={activeStatusId === 2 ? 'Enviar para doca' : 'Finalizar'}
-                        >
-                          <FontAwesomeIcon icon={activeStatusId === 2 ? faArrowRight : faCheck} />
-                        </button>
+                        {((activeStatusId === 2 && canSendToDock) || (activeStatusId === 3 && canFinalize)) && (
+                          <button
+                            className="operacao-action-button"
+                            type="button"
+                            onClick={() =>
+                              activeStatusId === 2 ? void openDocaModal(agendamento) : setFinalizeAgendamento(agendamento)
+                            }
+                            aria-label={activeStatusId === 2 ? 'Enviar para doca' : 'Finalizar'}
+                          >
+                            <FontAwesomeIcon icon={activeStatusId === 2 ? faArrowRight : faCheck} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   )}
@@ -475,7 +511,7 @@ function OperacoesPage({ mode }: OperacoesPageProps) {
 
               {!isLoading && (activeAba?.agendamentos ?? []).length === 0 && (
                 <tr>
-                  <td className="empty-cell" colSpan={activeStatusId === 4 ? 7 : 8}>
+                  <td className="empty-cell" colSpan={canUseCurrentActions ? 8 : 7}>
                     Nenhum registro encontrado.
                   </td>
                 </tr>
@@ -483,7 +519,7 @@ function OperacoesPage({ mode }: OperacoesPageProps) {
 
               {isLoading && (
                 <tr>
-                  <td className="empty-cell" colSpan={activeStatusId === 4 ? 7 : 8}>
+                  <td className="empty-cell" colSpan={canUseCurrentActions ? 8 : 7}>
                     Carregando registros...
                   </td>
                 </tr>

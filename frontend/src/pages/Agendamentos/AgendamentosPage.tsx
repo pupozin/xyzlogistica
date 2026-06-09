@@ -12,6 +12,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import '../Cadastros/CadastroListPage.css'
 import './AgendamentosPage.css'
+import { hasPermission, PermissionUser } from '../../security/permissions'
 
 type AgendamentoMode = 'inbound' | 'outbound'
 
@@ -76,6 +77,20 @@ function getAuthHeaders(includeJson = false) {
   return headers
 }
 
+function getStoredUser(): PermissionUser | null {
+  const rawUser = localStorage.getItem('zyx.user')
+
+  if (!rawUser) {
+    return null
+  }
+
+  try {
+    return JSON.parse(rawUser) as PermissionUser
+  } catch {
+    return null
+  }
+}
+
 async function readErrorMessage(response: Response, fallback: string) {
   try {
     const data = (await response.json()) as { message?: string }
@@ -128,6 +143,10 @@ function buildDateTime(date: string, time: string) {
 
 function AgendamentosPage({ mode }: AgendamentosPageProps) {
   const config = pageConfig[mode]
+  const user = useMemo(() => getStoredUser(), [])
+  const canCreate = hasPermission(user, 'agendamentos.criar')
+  const canEdit = hasPermission(user, 'agendamentos.editar')
+  const canCancel = hasPermission(user, 'agendamentos.cancelar')
   const [startDate, setStartDate] = useState(() => toDateKey(new Date()))
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([])
   const [transportadoras, setTransportadoras] = useState<Option[]>([])
@@ -292,6 +311,10 @@ function AgendamentosPage({ mode }: AgendamentosPageProps) {
   }
 
   async function openCreateModal() {
+    if (!canCreate) {
+      return
+    }
+
     setMessage('')
     setEditingAgendamento(null)
     setTransportadoraId('')
@@ -312,6 +335,10 @@ function AgendamentosPage({ mode }: AgendamentosPageProps) {
   }
 
   async function openEditModal(agendamento: Agendamento) {
+    if (!canEdit) {
+      return
+    }
+
     setMessage('')
     setModalMode('edit')
 
@@ -414,7 +441,7 @@ function AgendamentosPage({ mode }: AgendamentosPageProps) {
   }
 
   async function handleCancelAgendamento() {
-    if (!cancelAgendamento) {
+    if (!cancelAgendamento || !canCancel) {
       return
     }
 
@@ -449,9 +476,11 @@ function AgendamentosPage({ mode }: AgendamentosPageProps) {
       <header className="cadastro-header">
         <div className="cadastro-title-actions">
           <h1>{config.title}</h1>
-          <button className="cadastro-new-button" type="button" onClick={() => void openCreateModal()}>
-            + Nova agenda
-          </button>
+          {canCreate && (
+            <button className="cadastro-new-button" type="button" onClick={() => void openCreateModal()}>
+              + Nova agenda
+            </button>
+          )}
         </div>
 
         <div className="agendamento-date-filter">
@@ -485,7 +514,7 @@ function AgendamentosPage({ mode }: AgendamentosPageProps) {
                     type="button"
                     onClick={() => void openEditModal(agendamento)}
                   >
-                    {agendamento.statusId !== 4 && (
+                    {canCancel && agendamento.statusId !== 4 && (
                       <span
                         className="agenda-cancel-button"
                         role="button"

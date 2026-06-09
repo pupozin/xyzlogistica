@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -15,10 +15,12 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import './MainLayout.css'
 import logoUrl from '../../../images/logo-xyz.png'
+import { hasPermission, Permission } from '../../security/permissions'
 
 type MenuChild = {
   label: string
   path: string
+  permission: string
 }
 
 type MenuGroup = {
@@ -31,6 +33,7 @@ type UserInfo = {
   nome?: string
   email?: string
   perfilDescricao?: string
+  permissoes?: Permission[]
 }
 
 type MainLayoutProps = {
@@ -43,45 +46,45 @@ const menuGroups: MenuGroup[] = [
     label: 'Agendamentos',
     icon: faCalendarDays,
     children: [
-      { label: 'Inbound', path: '/agendamentos/inbound' },
-      { label: 'Outbound', path: '/agendamentos/outbound' },
+      { label: 'Inbound', path: '/agendamentos/inbound', permission: 'agendamentos.visualizar' },
+      { label: 'Outbound', path: '/agendamentos/outbound', permission: 'agendamentos.visualizar' },
     ],
   },
   {
     label: 'Operacao',
     icon: faTruck,
     children: [
-      { label: 'Operacao Inbound', path: '/operacao/inbound' },
-      { label: 'Operacao Outbound', path: '/operacao/outbound' },
+      { label: 'Operacao Inbound', path: '/operacao/inbound', permission: 'operacoes.visualizar' },
+      { label: 'Operacao Outbound', path: '/operacao/outbound', permission: 'operacoes.visualizar' },
     ],
   },
   {
     label: 'Cadastros',
     icon: faUsers,
     children: [
-      { label: 'Transportadora', path: '/cadastros/transportadora' },
-      { label: 'Motorista', path: '/cadastros/motorista' },
-      { label: 'Veiculo', path: '/cadastros/veiculo' },
-      { label: 'Local', path: '/cadastros/local' },
-      { label: 'Produto', path: '/cadastros/produto' },
-      { label: 'Usuario', path: '/cadastros/usuario' },
-      { label: 'Perfil', path: '/cadastros/perfil' },
+      { label: 'Transportadora', path: '/cadastros/transportadora', permission: 'transportadoras.visualizar' },
+      { label: 'Motorista', path: '/cadastros/motorista', permission: 'motoristas.visualizar' },
+      { label: 'Veiculo', path: '/cadastros/veiculo', permission: 'veiculos.visualizar' },
+      { label: 'Local', path: '/cadastros/local', permission: 'locais.visualizar' },
+      { label: 'Produto', path: '/cadastros/produto', permission: 'produtos.visualizar' },
+      { label: 'Usuario', path: '/cadastros/usuario', permission: 'usuarios.visualizar' },
+      { label: 'Perfil', path: '/cadastros/perfil', permission: 'perfis.visualizar' },
     ],
   },
   {
     label: 'Configuracoes',
     icon: faGear,
-    children: [{ label: 'Janela agendamentos', path: '/configuracoes/janela-agendamentos' }],
+    children: [{ label: 'Janela agendamentos', path: '/configuracoes/janela-agendamentos', permission: 'configuracoes.visualizar' }],
   },
   {
     label: 'Inventario',
     icon: faBoxArchive,
-    children: [{ label: 'Inventario', path: '/inventario' }],
+    children: [{ label: 'Inventario', path: '/inventario', permission: 'inventario.visualizar' }],
   },
   {
     label: 'Relatorios',
     icon: faChartSimple,
-    children: [{ label: 'Relatorios', path: '/relatorios' }],
+    children: [{ label: 'Relatorios', path: '/relatorios', permission: 'relatorios.visualizar' }],
   },
 ]
 
@@ -89,14 +92,28 @@ function MainLayout({ user, onLogout }: MainLayoutProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(true)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const location = useLocation()
+  const allowedMenuGroups = useMemo(() => {
+    return menuGroups
+      .map((group) => ({
+        ...group,
+        children: group.children.filter((child) => hasPermission(user, child.permission)),
+      }))
+      .filter((group) => group.children.length > 0)
+  }, [user])
 
   const currentGroupLabel = useMemo(() => {
-    return menuGroups.find((group) =>
+    return allowedMenuGroups.find((group) =>
       group.children.some((child) => location.pathname === child.path),
     )?.label
-  }, [location.pathname])
+  }, [allowedMenuGroups, location.pathname])
 
   const [expandedGroup, setExpandedGroup] = useState(currentGroupLabel ?? 'Agendamentos')
+
+  useEffect(() => {
+    if (currentGroupLabel) {
+      setExpandedGroup(currentGroupLabel)
+    }
+  }, [currentGroupLabel])
 
   function toggleGroup(label: string) {
     if (!isMenuOpen) {
@@ -124,7 +141,7 @@ function MainLayout({ user, onLogout }: MainLayoutProps) {
         </div>
 
         <nav className="sidebar-nav">
-          {menuGroups.map((group) => {
+          {allowedMenuGroups.map((group) => {
             const isActiveGroup = expandedGroup === group.label
             const isExpanded = isMenuOpen && expandedGroup === group.label
 

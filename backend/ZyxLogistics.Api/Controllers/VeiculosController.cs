@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using ZyxLogistics.Api.DTOs;
@@ -17,6 +18,7 @@ namespace ZyxLogistics.Api.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = "veiculos.visualizar")]
         public async Task<IActionResult> Listar([FromQuery] VeiculoFilterRequest filter)
         {
             var veiculos = await _veiculoRepository.ListarAsync(filter);
@@ -24,6 +26,7 @@ namespace ZyxLogistics.Api.Controllers
         }
 
         [HttpGet("{id:int}")]
+        [Authorize(Policy = "veiculos.visualizar")]
         public async Task<IActionResult> ObterPorId(int id)
         {
             var veiculo = await _veiculoRepository.ObterPorIdAsync(id);
@@ -37,6 +40,7 @@ namespace ZyxLogistics.Api.Controllers
         }
 
         [HttpPost]
+        [Authorize(Policy = "veiculos.criar")]
         public async Task<IActionResult> Inserir(VeiculoCreateRequest request)
         {
             try
@@ -57,6 +61,7 @@ namespace ZyxLogistics.Api.Controllers
         }
 
         [HttpPut("{id:int}")]
+        [Authorize(Policy = "veiculos.editar")]
         public async Task<IActionResult> Atualizar(int id, VeiculoUpdateRequest request)
         {
             try
@@ -81,6 +86,7 @@ namespace ZyxLogistics.Api.Controllers
         }
 
         [HttpDelete("{id:int}")]
+        [Authorize(Policy = "veiculos.excluir")]
         public async Task<IActionResult> Excluir(int id)
         {
             var excluido = await _veiculoRepository.ExcluirAsync(id);

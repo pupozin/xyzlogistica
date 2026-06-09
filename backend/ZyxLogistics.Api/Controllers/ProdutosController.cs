@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using ZyxLogistics.Api.DTOs;
@@ -17,6 +18,7 @@ namespace ZyxLogistics.Api.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = "produtos.visualizar")]
         public async Task<IActionResult> Listar([FromQuery] ProdutoFilterRequest filter)
         {
             var produtos = await _produtoRepository.ListarAsync(filter);
@@ -24,6 +26,7 @@ namespace ZyxLogistics.Api.Controllers
         }
 
         [HttpGet("{id:int}")]
+        [Authorize(Policy = "produtos.visualizar")]
         public async Task<IActionResult> ObterPorId(int id)
         {
             var produto = await _produtoRepository.ObterPorIdAsync(id);
@@ -37,6 +40,7 @@ namespace ZyxLogistics.Api.Controllers
         }
 
         [HttpPost]
+        [Authorize(Policy = "produtos.criar")]
         public async Task<IActionResult> Inserir(ProdutoCreateRequest request)
         {
             try
@@ -53,6 +57,7 @@ namespace ZyxLogistics.Api.Controllers
         }
 
         [HttpPut("{id:int}")]
+        [Authorize(Policy = "produtos.editar")]
         public async Task<IActionResult> Atualizar(int id, ProdutoUpdateRequest request)
         {
             try
@@ -73,6 +78,7 @@ namespace ZyxLogistics.Api.Controllers
         }
 
         [HttpDelete("{id:int}")]
+        [Authorize(Policy = "produtos.excluir")]
         public async Task<IActionResult> Excluir(int id)
         {
             var excluido = await _produtoRepository.ExcluirAsync(id);

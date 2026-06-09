@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using ZyxLogistics.Api.DTOs;
@@ -17,6 +18,7 @@ namespace ZyxLogistics.Api.Controllers
         }
 
         [HttpGet("ativa")]
+        [Authorize(Policy = "configuracoes.visualizar")]
         public async Task<IActionResult> ObterAtiva()
         {
             var configuracao = await _configuracaoAgendamentoRepository.ObterAtivaAsync();
@@ -30,6 +32,7 @@ namespace ZyxLogistics.Api.Controllers
         }
 
         [HttpPut("ativa")]
+        [Authorize(Policy = "configuracoes.editar")]
         public async Task<IActionResult> AtualizarAtiva(ConfiguracaoAgendamentoUpdateRequest request)
         {
             if (request.HoraInicio >= request.HoraFim)

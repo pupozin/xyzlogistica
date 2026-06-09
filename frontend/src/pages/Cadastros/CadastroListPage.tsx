@@ -18,6 +18,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import './CadastroListPage.css'
 import { CadastroFormField, CadastroKey, cadastroConfigs } from './cadastroConfigs'
+import { cadastroPermissions, hasPermission, PermissionUser } from '../../security/permissions'
 
 type CadastroListPageProps = {
   cadastro: CadastroKey
@@ -49,6 +50,20 @@ const fieldIcons = {
   user: faUser,
   shield: faShieldHalved,
   list: faListCheck,
+}
+
+function getStoredUser(): PermissionUser | null {
+  const rawUser = localStorage.getItem('zyx.user')
+
+  if (!rawUser) {
+    return null
+  }
+
+  try {
+    return JSON.parse(rawUser) as PermissionUser
+  } catch {
+    return null
+  }
 }
 
 function getAuthHeaders(includeJson = false) {
@@ -130,6 +145,12 @@ function formatTelefone(value: string) {
 
 function CadastroListPage({ cadastro }: CadastroListPageProps) {
   const config = cadastroConfigs[cadastro]
+  const user = useMemo(() => getStoredUser(), [])
+  const permissions = cadastroPermissions[cadastro]
+  const canCreate = hasPermission(user, permissions.create)
+  const canEdit = hasPermission(user, permissions.edit)
+  const canDelete = hasPermission(user, permissions.delete)
+  const canUseActions = canEdit || canDelete
   const [rows, setRows] = useState<GridRow[]>([])
   const [search, setSearch] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -171,7 +192,7 @@ function CadastroListPage({ cadastro }: CadastroListPageProps) {
       })
 
       if (!response.ok) {
-        throw new Error(await readErrorMessage(response, 'Não foi possível carregar os registros.'))
+        throw new Error(await readErrorMessage(response, 'Nao foi possivel carregar os registros.'))
       }
 
       const data = (await response.json()) as GridRow[]
@@ -198,7 +219,7 @@ function CadastroListPage({ cadastro }: CadastroListPageProps) {
         })
 
         if (!response.ok) {
-          throw new Error(`Não foi possível carregar ${field.label.toLowerCase()}.`)
+          throw new Error(`Nao foi possivel carregar ${field.label.toLowerCase()}.`)
         }
 
         const data = (await response.json()) as GridRow[]
@@ -224,7 +245,7 @@ function CadastroListPage({ cadastro }: CadastroListPageProps) {
     })
 
     if (!response.ok) {
-      throw new Error('Não foi possível carregar as permissões do perfil.')
+      throw new Error('Nao foi possivel carregar as permissoes do perfil.')
     }
 
     const data = (await response.json()) as GridRow[]
@@ -232,6 +253,10 @@ function CadastroListPage({ cadastro }: CadastroListPageProps) {
   }
 
   async function openCreateModal() {
+    if (!canCreate) {
+      return
+    }
+
     setMessage('')
     setEditingRow(null)
     setFormValues(buildInitialValues(config.formFields))
@@ -240,11 +265,15 @@ function CadastroListPage({ cadastro }: CadastroListPageProps) {
     try {
       await loadFieldOptions()
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Erro ao carregar opções.')
+      setMessage(error instanceof Error ? error.message : 'Erro ao carregar opcoes.')
     }
   }
 
   async function openEditModal(row: GridRow) {
+    if (!canEdit) {
+      return
+    }
+
     setMessage('')
     setEditingRow(row)
     setModalMode('edit')
@@ -257,7 +286,7 @@ function CadastroListPage({ cadastro }: CadastroListPageProps) {
       })
 
       if (!response.ok) {
-        throw new Error(await readErrorMessage(response, 'Não foi possível carregar o registro.'))
+        throw new Error(await readErrorMessage(response, 'Nao foi possivel carregar o registro.'))
       }
 
       const data = (await response.json()) as GridRow
@@ -351,7 +380,7 @@ function CadastroListPage({ cadastro }: CadastroListPageProps) {
   async function handleSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    if (!modalMode) {
+    if (!modalMode || (modalMode === 'create' && !canCreate) || (modalMode === 'edit' && !canEdit)) {
       return
     }
 
@@ -369,7 +398,7 @@ function CadastroListPage({ cadastro }: CadastroListPageProps) {
       )
 
       if (!response.ok) {
-        throw new Error(await readErrorMessage(response, 'Não foi possível salvar o registro.'))
+        throw new Error(await readErrorMessage(response, 'Nao foi possivel salvar o registro.'))
       }
 
       closeFormModal(true)
@@ -382,7 +411,7 @@ function CadastroListPage({ cadastro }: CadastroListPageProps) {
   }
 
   async function handleDelete() {
-    if (!deleteRow) {
+    if (!deleteRow || !canDelete) {
       return
     }
 
@@ -393,7 +422,7 @@ function CadastroListPage({ cadastro }: CadastroListPageProps) {
       })
 
       if (!response.ok) {
-        throw new Error(await readErrorMessage(response, 'Não foi possível excluir o registro.'))
+        throw new Error(await readErrorMessage(response, 'Nao foi possivel excluir o registro.'))
       }
 
       setDeleteRow(null)
@@ -421,7 +450,7 @@ function CadastroListPage({ cadastro }: CadastroListPageProps) {
     }
 
     if (type === 'boolean') {
-      return value ? 'Sim' : 'Não'
+      return value ? 'Sim' : 'Nao'
     }
 
     return String(value)
@@ -442,9 +471,11 @@ function CadastroListPage({ cadastro }: CadastroListPageProps) {
       <header className="cadastro-header">
         <div className="cadastro-title-actions">
           <h1>{config.title}</h1>
-          <button className="cadastro-new-button" type="button" onClick={() => void openCreateModal()}>
-            {config.newButtonLabel}
-          </button>
+          {canCreate && (
+            <button className="cadastro-new-button" type="button" onClick={() => void openCreateModal()}>
+              {config.newButtonLabel}
+            </button>
+          )}
         </div>
 
         <div className="cadastro-filter">
@@ -467,7 +498,7 @@ function CadastroListPage({ cadastro }: CadastroListPageProps) {
                 {config.columns.map((column) => (
                   <th key={column.field}>{column.header}</th>
                 ))}
-                <th>Ações</th>
+                {canUseActions && <th>Acoes</th>}
               </tr>
             </thead>
             <tbody>
@@ -476,22 +507,28 @@ function CadastroListPage({ cadastro }: CadastroListPageProps) {
                   {config.columns.map((column) => (
                     <td key={column.field}>{formatValue(row, column.field, column.type)}</td>
                   ))}
-                  <td>
-                    <div className="cadastro-actions">
-                      <button className="edit-action" type="button" onClick={() => void openEditModal(row)}>
-                        <FontAwesomeIcon icon={faPen} />
-                      </button>
-                      <button className="delete-action" type="button" onClick={() => setDeleteRow(row)}>
-                        <FontAwesomeIcon icon={faTrashCan} />
-                      </button>
-                    </div>
-                  </td>
+                  {canUseActions && (
+                    <td>
+                      <div className="cadastro-actions">
+                        {canEdit && (
+                          <button className="edit-action" type="button" onClick={() => void openEditModal(row)}>
+                            <FontAwesomeIcon icon={faPen} />
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button className="delete-action" type="button" onClick={() => setDeleteRow(row)}>
+                            <FontAwesomeIcon icon={faTrashCan} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
 
               {!isLoading && visibleRows.length === 0 && (
                 <tr>
-                  <td className="empty-cell" colSpan={config.columns.length + 1}>
+                  <td className="empty-cell" colSpan={config.columns.length + (canUseActions ? 1 : 0)}>
                     Nenhum registro encontrado.
                   </td>
                 </tr>
@@ -499,7 +536,7 @@ function CadastroListPage({ cadastro }: CadastroListPageProps) {
 
               {isLoading && (
                 <tr>
-                  <td className="empty-cell" colSpan={config.columns.length + 1}>
+                  <td className="empty-cell" colSpan={config.columns.length + (canUseActions ? 1 : 0)}>
                     Carregando registros...
                   </td>
                 </tr>
@@ -531,11 +568,7 @@ function CadastroListPage({ cadastro }: CadastroListPageProps) {
               </div>
               <div>
                 <h2>{config.title}</h2>
-                <p>
-                  {modalMode === 'create'
-                    ? 'Preencha as informações para cadastrar.'
-                    : 'Atualize as informações do cadastro.'}
-                </p>
+                <p>{modalMode === 'create' ? 'Preencha as informacoes para cadastrar.' : 'Atualize as informacoes do cadastro.'}</p>
               </div>
             </header>
 
@@ -621,7 +654,7 @@ function CadastroListPage({ cadastro }: CadastroListPageProps) {
         </div>
       )}
 
-      {deleteRow && (
+      {deleteRow && canDelete && (
         <div className="cadastro-modal-backdrop">
           <div className="delete-modal" role="dialog" aria-modal="true">
             <button className="modal-close-button" type="button" onClick={() => setDeleteRow(null)} aria-label="Fechar">

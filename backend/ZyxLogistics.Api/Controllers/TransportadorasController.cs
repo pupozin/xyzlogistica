@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using ZyxLogistics.Api.DTOs;
@@ -17,6 +18,7 @@ namespace ZyxLogistics.Api.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = "transportadoras.visualizar")]
         public async Task<IActionResult> Listar([FromQuery] TransportadoraFilterRequest filter)
         {
             var transportadoras = await _transportadoraRepository.ListarAsync(filter);
@@ -24,6 +26,7 @@ namespace ZyxLogistics.Api.Controllers
         }
 
         [HttpGet("{id:int}")]
+        [Authorize(Policy = "transportadoras.visualizar")]
         public async Task<IActionResult> ObterPorId(int id)
         {
             var transportadora = await _transportadoraRepository.ObterPorIdAsync(id);
@@ -37,6 +40,7 @@ namespace ZyxLogistics.Api.Controllers
         }
 
         [HttpPost]
+        [Authorize(Policy = "transportadoras.criar")]
         public async Task<IActionResult> Inserir(TransportadoraCreateRequest request)
         {
             try
@@ -53,6 +57,7 @@ namespace ZyxLogistics.Api.Controllers
         }
 
         [HttpPut("{id:int}")]
+        [Authorize(Policy = "transportadoras.editar")]
         public async Task<IActionResult> Atualizar(int id, TransportadoraUpdateRequest request)
         {
             try
@@ -73,6 +78,7 @@ namespace ZyxLogistics.Api.Controllers
         }
 
         [HttpDelete("{id:int}")]
+        [Authorize(Policy = "transportadoras.excluir")]
         public async Task<IActionResult> Excluir(int id)
         {
             var excluido = await _transportadoraRepository.ExcluirAsync(id);

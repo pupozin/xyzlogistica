@@ -8,6 +8,8 @@ type LoginResponse = {
   token: string
   nome: string
   email: string
+  perfilDescricao?: string
+  permissoes?: { codigo: string }[]
 }
 
 type PrimeiroAcessoResponse = {

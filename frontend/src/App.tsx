@@ -9,11 +9,48 @@ import InventarioPage from './pages/Inventario/InventarioPage'
 import Login from './pages/Login/Login'
 import OperacoesPage from './pages/Operacoes/OperacoesPage'
 import RelatoriosPage from './pages/Relatorios/RelatoriosPage'
+import { cadastroPermissions, hasPermission, Permission } from './security/permissions'
 
 type UserInfo = {
   nome?: string
   email?: string
   perfilDescricao?: string
+  permissoes?: Permission[]
+}
+
+type ProtectedRouteProps = {
+  user: UserInfo | null
+  permission: string
+  children: JSX.Element
+}
+
+const routePermissions = [
+  { path: '/agendamentos/inbound', permission: 'agendamentos.visualizar' },
+  { path: '/agendamentos/outbound', permission: 'agendamentos.visualizar' },
+  { path: '/operacao/inbound', permission: 'operacoes.visualizar' },
+  { path: '/operacao/outbound', permission: 'operacoes.visualizar' },
+  { path: '/cadastros/transportadora', permission: cadastroPermissions.transportadora.view },
+  { path: '/cadastros/motorista', permission: cadastroPermissions.motorista.view },
+  { path: '/cadastros/veiculo', permission: cadastroPermissions.veiculo.view },
+  { path: '/cadastros/local', permission: cadastroPermissions.local.view },
+  { path: '/cadastros/produto', permission: cadastroPermissions.produto.view },
+  { path: '/cadastros/usuario', permission: cadastroPermissions.usuario.view },
+  { path: '/cadastros/perfil', permission: cadastroPermissions.perfil.view },
+  { path: '/configuracoes/janela-agendamentos', permission: 'configuracoes.visualizar' },
+  { path: '/inventario', permission: 'inventario.visualizar' },
+  { path: '/relatorios', permission: 'relatorios.visualizar' },
+]
+
+function getFirstAllowedPath(user: UserInfo | null) {
+  return routePermissions.find((route) => hasPermission(user, route.permission))?.path ?? '/checkin'
+}
+
+function ProtectedRoute({ user, permission, children }: ProtectedRouteProps) {
+  if (!hasPermission(user, permission)) {
+    return <Navigate to={getFirstAllowedPath(user)} replace />
+  }
+
+  return children
 }
 
 function getStoredUser() {
@@ -52,22 +89,22 @@ function App() {
           <Route path="*" element={<Login onAuthenticated={setUser} />} />
         ) : (
           <Route element={<MainLayout user={user} onLogout={handleLogout} />}>
-            <Route index element={<Navigate to="/agendamentos/inbound" replace />} />
-            <Route path="/agendamentos/inbound" element={<AgendamentosPage mode="inbound" />} />
-            <Route path="/agendamentos/outbound" element={<AgendamentosPage mode="outbound" />} />
-            <Route path="/operacao/inbound" element={<OperacoesPage mode="inbound" />} />
-            <Route path="/operacao/outbound" element={<OperacoesPage mode="outbound" />} />
-            <Route path="/cadastros/transportadora" element={<CadastroListPage cadastro="transportadora" />} />
-            <Route path="/cadastros/motorista" element={<CadastroListPage cadastro="motorista" />} />
-            <Route path="/cadastros/veiculo" element={<CadastroListPage cadastro="veiculo" />} />
-            <Route path="/cadastros/local" element={<CadastroListPage cadastro="local" />} />
-            <Route path="/cadastros/produto" element={<CadastroListPage cadastro="produto" />} />
-            <Route path="/cadastros/usuario" element={<CadastroListPage cadastro="usuario" />} />
-            <Route path="/cadastros/perfil" element={<CadastroListPage cadastro="perfil" />} />
-            <Route path="/configuracoes/janela-agendamentos" element={<JanelaAgendamentosPage />} />
-            <Route path="/inventario" element={<InventarioPage />} />
-            <Route path="/relatorios" element={<RelatoriosPage />} />
-            <Route path="*" element={<Navigate to="/agendamentos/inbound" replace />} />
+            <Route index element={<Navigate to={getFirstAllowedPath(user)} replace />} />
+            <Route path="/agendamentos/inbound" element={<ProtectedRoute user={user} permission="agendamentos.visualizar"><AgendamentosPage mode="inbound" /></ProtectedRoute>} />
+            <Route path="/agendamentos/outbound" element={<ProtectedRoute user={user} permission="agendamentos.visualizar"><AgendamentosPage mode="outbound" /></ProtectedRoute>} />
+            <Route path="/operacao/inbound" element={<ProtectedRoute user={user} permission="operacoes.visualizar"><OperacoesPage mode="inbound" /></ProtectedRoute>} />
+            <Route path="/operacao/outbound" element={<ProtectedRoute user={user} permission="operacoes.visualizar"><OperacoesPage mode="outbound" /></ProtectedRoute>} />
+            <Route path="/cadastros/transportadora" element={<ProtectedRoute user={user} permission={cadastroPermissions.transportadora.view}><CadastroListPage cadastro="transportadora" /></ProtectedRoute>} />
+            <Route path="/cadastros/motorista" element={<ProtectedRoute user={user} permission={cadastroPermissions.motorista.view}><CadastroListPage cadastro="motorista" /></ProtectedRoute>} />
+            <Route path="/cadastros/veiculo" element={<ProtectedRoute user={user} permission={cadastroPermissions.veiculo.view}><CadastroListPage cadastro="veiculo" /></ProtectedRoute>} />
+            <Route path="/cadastros/local" element={<ProtectedRoute user={user} permission={cadastroPermissions.local.view}><CadastroListPage cadastro="local" /></ProtectedRoute>} />
+            <Route path="/cadastros/produto" element={<ProtectedRoute user={user} permission={cadastroPermissions.produto.view}><CadastroListPage cadastro="produto" /></ProtectedRoute>} />
+            <Route path="/cadastros/usuario" element={<ProtectedRoute user={user} permission={cadastroPermissions.usuario.view}><CadastroListPage cadastro="usuario" /></ProtectedRoute>} />
+            <Route path="/cadastros/perfil" element={<ProtectedRoute user={user} permission={cadastroPermissions.perfil.view}><CadastroListPage cadastro="perfil" /></ProtectedRoute>} />
+            <Route path="/configuracoes/janela-agendamentos" element={<ProtectedRoute user={user} permission="configuracoes.visualizar"><JanelaAgendamentosPage /></ProtectedRoute>} />
+            <Route path="/inventario" element={<ProtectedRoute user={user} permission="inventario.visualizar"><InventarioPage /></ProtectedRoute>} />
+            <Route path="/relatorios" element={<ProtectedRoute user={user} permission="relatorios.visualizar"><RelatoriosPage /></ProtectedRoute>} />
+            <Route path="*" element={<Navigate to={getFirstAllowedPath(user)} replace />} />
           </Route>
         )}
       </Routes>
