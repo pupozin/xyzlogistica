@@ -54,8 +54,8 @@ const menuGroups: MenuGroup[] = [
     label: 'Operacao',
     icon: faTruck,
     children: [
-      { label: 'Operacao Inbound', path: '/operacao/inbound', permission: 'operacoes.visualizar' },
-      { label: 'Operacao Outbound', path: '/operacao/outbound', permission: 'operacoes.visualizar' },
+      { label: 'Operação Inbound', path: '/operacao/inbound', permission: 'operacoes.visualizar' },
+      { label: 'Operação Outbound', path: '/operacao/outbound', permission: 'operacoes.visualizar' },
     ],
   },
   {
@@ -64,27 +64,27 @@ const menuGroups: MenuGroup[] = [
     children: [
       { label: 'Transportadora', path: '/cadastros/transportadora', permission: 'transportadoras.visualizar' },
       { label: 'Motorista', path: '/cadastros/motorista', permission: 'motoristas.visualizar' },
-      { label: 'Veiculo', path: '/cadastros/veiculo', permission: 'veiculos.visualizar' },
+      { label: 'Veículo', path: '/cadastros/veiculo', permission: 'veiculos.visualizar' },
       { label: 'Local', path: '/cadastros/local', permission: 'locais.visualizar' },
       { label: 'Produto', path: '/cadastros/produto', permission: 'produtos.visualizar' },
-      { label: 'Usuario', path: '/cadastros/usuario', permission: 'usuarios.visualizar' },
+      { label: 'Usuário', path: '/cadastros/usuario', permission: 'usuarios.visualizar' },
       { label: 'Perfil', path: '/cadastros/perfil', permission: 'perfis.visualizar' },
     ],
   },
   {
-    label: 'Configuracoes',
+    label: 'Configurações',
     icon: faGear,
     children: [{ label: 'Janela agendamentos', path: '/configuracoes/janela-agendamentos', permission: 'configuracoes.visualizar' }],
   },
   {
-    label: 'Inventario',
+    label: 'Inventário',
     icon: faBoxArchive,
-    children: [{ label: 'Inventario', path: '/inventario', permission: 'inventario.visualizar' }],
+    children: [{ label: 'Inventário', path: '/inventario', permission: 'inventario.visualizar' }],
   },
   {
-    label: 'Relatorios',
+    label: 'Relatórios',
     icon: faChartSimple,
-    children: [{ label: 'Relatorios', path: '/relatorios', permission: 'relatorios.visualizar' }],
+    children: [{ label: 'Relátorios', path: '/relatorios', permission: 'relatorios.visualizar' }],
   },
 ]
 
