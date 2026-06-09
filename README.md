@@ -1,18 +1,18 @@
-# ZYX Logistics MVP
+﻿# ZYX Logística
 
-Sistema web desenvolvido para simular uma operacao logistica da empresa ficticia ZYX Logistica, com foco em agendamento de cargas, controle operacional, inventario, check-in de motoristas e relatorios digitais.
+Sistema web desenvolvido para simular uma operação logística da empresa fictícia ZYX Logística, com foco em agendamento de cargas, controle operacional, inventário, check-in de motoristas e relatórios digitais.
 
-> Projeto criado para fins tecnicos. Dados, usuários, telefones e operações utilizados na demonstração são fícticios.
+> Projeto criado para fins técnicos. Dados, usuários, telefones e operações utilizados na demonstração são fictícios.
 
 ## Objetivo
 
-A proposta é resolver gargalos comuns em operaçõees logísticas:
+A proposta é resolver gargalos comuns em operações logísticas:
 
-- Falta de controle sobre recebimento e expedicao de cargas.
-- Ausencia de rastreabilidade dos agendamentos e mudancas de status.
-- Controle manual de entrada e saida de estoque.
-- Check-in sem registro eletronico.
-- Falta de relatorios consolidados para tomada de decisao.
+- Falta de controle sobre recebimento e expedição de cargas.
+- Ausência de rastreabilidade dos agendamentos e mudanças de status.
+- Controle manual de entrada e saída de estoque.
+- Check-in sem registro eletrônico.
+- Falta de relatórios consolidados para tomada de decisão.
 
 ## Stack
 
@@ -21,23 +21,24 @@ A proposta é resolver gargalos comuns em operaçõees logísticas:
 | Frontend | React, Vite, TypeScript, Font Awesome |
 | Backend | .NET 8, ASP.NET Core Web API, JWT, User Secrets |
 | Banco | SQL Server, Stored Procedures |
-| Relatorios | ClosedXML, Excel `.xlsx` |
+| Relatórios | ClosedXML, Excel `.xlsx` |
 | SMS | Twilio ou provedor simulado |
 
 ## Funcionalidades
 
 - Login com JWT.
 - Primeiro acesso com definição de senha.
-- Controle de perfis e permissoes por tela/acao.
-- Menu dinamico conforme permissões do perfil.
+- Controle de perfis e permissões por tela/ação.
+- Menu dinâmico conforme permissões do perfil.
 - Cadastros de transportadora, motorista, veículo, local/doca, produto, usuário e perfil.
 - Agendamentos inbound e outbound.
-- Visualizacao de agenda em janela de 7 dias a partir da data selecionada.
-- Validacao de disponibilidade por horario e quantidade de locais/docas.
-- Check-in por CNH com codigo de 6 digitos via SMS.
+- Visualização de agenda em janela de 7 dias a partir da data selecionada.
+- Validação de disponibilidade por horário e quantidade de locais/docas.
+- Check-in por CNH com código de 6 dígitos via SMS.
+- Tela de check-in simulando um totem/tablet fixo na recepção do CD.
 - Fluxo operacional separado por status: Check-in realizado, Em doca e Finalizado.
-- Movimentacao de itens da operacao com reflexo no inventario.
-- Bloqueio de expedicao outbound quando nao há estoque suficiente.
+- Movimentação de itens da operação com reflexo no inventário.
+- Bloqueio de expedição outbound quando não há estoque suficiente.
 - Relatórios em Excel.
 
 ## Arquitetura
@@ -54,38 +55,38 @@ flowchart LR
 
 ### Backend
 
-O backend esta em `backend/ZyxLogistics.Api`.
+O backend está em `backend/ZyxLogistics.Api`.
 
 Principais camadas:
 
-- `Controllers`: recebem as requisicoes HTTP e aplicam as policies de permissao.
-- `DTOs`: definem os contratos de entrada e saida da API.
+- `Controllers`: recebem as requisições HTTP e aplicam as policies de permissão.
+- `DTOs`: definem os contratos de entrada e saída da API.
 - `Repositories`: executam as procedures no SQL Server.
 - `Models`: representam os dados retornados do banco.
-- `Services`: autenticacao, token, senha e envio de SMS.
-- `Security`: validacao de permissoes via JWT.
+- `Services`: autenticação, token, senha e envio de SMS.
+- `Security`: validação de permissões via JWT.
 - `Scripts`: script base do banco.
 
 ### Frontend
 
-O frontend esta em `frontend`.
+O frontend está em `frontend`.
 
 Principais pontos:
 
-- `layouts/MainLayout`: menu lateral, cabecalho e logout.
+- `layouts/MainLayout`: menu lateral, cabeçalho e logout.
 - `pages/Login`: login e primeiro acesso.
 - `pages/Cadastros`: telas reutilizadas de cadastro.
 - `pages/Agendamentos`: agenda inbound/outbound.
 - `pages/Operacoes`: fluxo operacional inbound/outbound.
-- `pages/CheckIn`: tela estilo tablet para check-in do motorista.
-- `pages/Relatorios`: exportacao de relatorios em Excel.
-- `security/permissions.ts`: regras de visibilidade conforme permissoes.
+- `pages/CheckIn`: tela em formato de tablet, simulando um totem de autoatendimento na recepção do CD.
+- `pages/Relatorios`: exportação de relatórios em Excel.
+- `security/permissions.ts`: regras de visibilidade conforme permissões.
 
 ## Banco de dados
 
 Existem duas formas de preparar o banco.
 
-### Opcao 1: Restaurar backup
+### Opção 1: Restaurar backup
 
 O projeto possui um backup em:
 
@@ -93,17 +94,17 @@ O projeto possui um backup em:
 banco/zyx_banco.bak
 ```
 
-Esse caminho foi mantido para facilitar a avaliacao e permitir restaurar o ambiente com dados de demonstracao.
+Esse caminho foi mantido para facilitar a avaliação e permitir restaurar o ambiente com dados de demonstração.
 
-### Opcao 2: Criar pelo script
+### Opção 2: Criar pelo script
 
-Tambem existe o script completo em:
+Também existe o script completo em:
 
 ```text
 backend/ZyxLogistics.Api/Scripts/001_base_database.sql
 ```
 
-Ele cria as tabelas, relacionamentos, permissoes, perfis base, usuario administrador inicial e stored procedures.
+Ele cria as tabelas, relacionamentos, permissões, perfis base, usuário administrador inicial e stored procedures.
 
 Perfis base:
 
@@ -111,7 +112,7 @@ Perfis base:
 - `Operador`
 - `Consulta`
 
-Usuario inicial:
+Usuário inicial:
 
 ```text
 Email: admin@zyx.local
@@ -120,7 +121,7 @@ Senha: definida pelo fluxo de primeiro acesso
 
 Ao entrar pela primeira vez, use o link de primeiro acesso da tela de login para definir a senha do administrador.
 
-## Configuracao da API
+## Configuração da API
 
 Entre na pasta da API:
 
@@ -140,31 +141,31 @@ Configure uma chave JWT para desenvolvimento:
 dotnet user-secrets set "Jwt:Key" "uma-chave-grande-para-desenvolvimento"
 ```
 
-Rodar a API:
+Rode a API:
 
 ```bash
 dotnet run
 ```
 
-Por padrao, a API roda em:
+Por padrão, a API roda em:
 
 ```text
 http://localhost:5271
 ```
 
-## Configuracao do SMS
+## Configuração do SMS
 
 O sistema suporta dois modos de SMS.
 
 ### SMS simulado
 
-Use quando quiser testar o fluxo sem gastar credito ou depender de telefone real.
+Use quando quiser testar o fluxo sem gastar crédito ou depender de telefone real.
 
 ```bash
 dotnet user-secrets set "Sms:Provider" "Simulated"
 ```
 
-Nesse modo, o frontend mostra um aviso discreto com o codigo de teste na tela de confirmacao do check-in.
+Nesse modo, o frontend mostra um aviso discreto com o código de teste na tela de confirmação do check-in.
 
 ### SMS real com Twilio
 
@@ -177,13 +178,13 @@ dotnet user-secrets set "Sms:Twilio:AuthToken" "SEU_AUTH_TOKEN"
 dotnet user-secrets set "Sms:Twilio:From" "+NUMERO_TWILIO"
 ```
 
-Observacoes:
+Observações:
 
-- Em conta trial da Twilio, normalmente só é possivel enviar para números verificados.
+- Em conta trial da Twilio, normalmente só é possível enviar para números verificados.
 - Nunca versionar `AccountSid`, `AuthToken` ou qualquer segredo real.
-- O `appsettings.json` mantem os campos vazios; dados sensiveis devem ficar em user-secrets.
+- O `appsettings.json` mantém os campos vazios; dados sensíveis devem ficar em user-secrets.
 
-## Configuracao do frontend
+## Configuração do frontend
 
 Entre na pasta do frontend:
 
@@ -191,7 +192,7 @@ Entre na pasta do frontend:
 cd frontend
 ```
 
-Instale as dependencias:
+Instale as dependências:
 
 ```bash
 npm install
@@ -211,42 +212,44 @@ http://localhost:5173
 
 Caso a porta esteja ocupada, ele pode usar outra porta, como `5174`.
 
-## Fluxo principal da aplicacao
+## Fluxo principal da aplicação
 
 1. Administrador faz primeiro acesso e define senha.
-2. Administrador cria perfis e marca permissoes por checkbox.
-3. Administrador cria usuarios e vincula cada um a um perfil.
-4. Cadastros base sao preenchidos: transportadoras, motoristas, veiculos, locais/docas e produtos.
-5. Usuario cria agendamento inbound ou outbound.
-6. Motorista faz check-in pela tela `/checkin`, informando CNH e codigo SMS.
-7. Operacao visualiza agendas com check-in realizado.
-8. Usuario envia a agenda para doca, informando o local.
-9. Usuario adiciona itens da operacao.
-10. Sistema movimenta o inventario conforme inbound ou outbound.
-11. Operacao e finalizada.
-12. Relatorios podem ser exportados em Excel.
+2. Administrador cria perfis e marca permissões por checkbox.
+3. Administrador cria usuários e vincula cada um a um perfil.
+4. Cadastros base são preenchidos: transportadoras, motoristas, veículos, locais/docas e produtos.
+5. Usuário cria agendamento inbound ou outbound.
+6. Motorista faz check-in pela tela `/checkin`, informando CNH e código SMS.
+7. A tela `/checkin` representa um totem/tablet na recepção do CD, onde o próprio motorista realiza a identificação antes de iniciar a operação.
+8. Operação visualiza agendas com check-in realizado.
+9. Usuário envia a agenda para doca, informando o local.
+10. Usuário adiciona itens da operação.
+11. Sistema movimenta o inventário conforme inbound ou outbound.
+12. Operação é finalizada.
+13. Relatórios podem ser exportados em Excel.
 
-## Regras de negocio implementadas
+## Regras de negócio implementadas
 
 ### Agendamentos
 
 - A agenda sempre pertence a uma operação: `Inbound` ou `Outbound`.
 - A tela lista 7 dias a partir da data selecionada.
 - Agendamentos são ordenados por horário.
-- Ao criar agenda, o status inicial e `Agendado`.
-- Agenda cancelada ou finalizada nao deve ser editada como agenda ativa.
+- Ao criar agenda, o status inicial é `Agendado`.
+- Agenda cancelada ou finalizada não deve ser editada como agenda ativa.
 - Agenda finalizada não pode ser cancelada.
 - Motorista com agendamento ativo não deve ser usado em outro agendamento ativo.
 - Veículos são filtrados pela transportadora selecionada.
-- Horarios disponiveis consideram a janela de agendamento e a quantidade de locais/docas cadastrados.
+- Horários disponíveis consideram a janela de agendamento e a quantidade de locais/docas cadastrados.
 
 ### Check-in
 
+- A tela foi desenhada para simular um totem/tablet fixo na recepção do CD.
 - Motorista informa a CNH.
-- Sistema busca o agendamento ativo mais proximo daquele motorista.
-- Sistema gera codigo de 6 digitos.
+- Sistema busca o agendamento ativo mais próximo daquele motorista.
+- Sistema gera código de 6 dígitos.
 - Código pode ser enviado por Twilio ou exibido em modo simulado.
-- Confirmacao muda o status para `CheckInRealizado`.
+- Confirmação muda o status para `CheckInRealizado`.
 
 ### Operação
 
@@ -255,7 +258,7 @@ Caso a porta esteja ocupada, ele pode usar outra porta, como `5174`.
   - Check-in realizado.
   - Em doca.
   - Finalizado.
-- Para enviar para doca, e necessario escolher um local.
+- Para enviar para doca, é necessário escolher um local.
 - Um local em uso por agenda `EmDoca` não pode ser usado por outra agenda simultaneamente.
 - Para finalizar, é obrigatório ter ao menos um item na operação.
 
@@ -264,15 +267,15 @@ Caso a porta esteja ocupada, ele pode usar outra porta, como `5174`.
 - Ao cadastrar produto, o inventário inicia com quantidade zero.
 - Inbound soma quantidade ao estoque.
 - Outbound subtrai quantidade do estoque.
-- Outbound bloqueia movimentacao quando nao ha estoque suficiente.
+- Outbound bloqueia movimentação quando não há estoque suficiente.
 
 ### Permissões
 
 - Permissões são gravadas no banco.
-- O JWT carrega as permissoes do usuario.
-- O frontend esconde menus, rotas e botoes nao autorizados.
-- O backend tambem bloqueia endpoints por policy.
-- Menu pai so aparece se o usuario possuir pelo menos uma opcao filha liberada.
+- O JWT carrega as permissões do usuário.
+- O frontend esconde menus, rotas e botões não autorizados.
+- O backend também bloqueia endpoints por policy.
+- Menu pai só aparece se o usuário possuir pelo menos uma opção filha liberada.
 
 ## Relatórios
 
@@ -287,22 +290,22 @@ Todos os relatórios são exportados em Excel:
 
 Os filtros principais são período, operação e tipo de relatório.
 
-## Evidencias visuais
+## Evidências visuais
 
+Adicione os prints reais em `docs/images`. A tabela abaixo já aponta para os arquivos esperados.
 
 | Tela | Arquivo |
 | --- | --- |
-| Login | `docs/images/01-login.png` |
-| Primeiro acesso | `docs/images/02-primeiro-acesso.png` |
-| Menu com permissoes | `docs/images/03-menu-permissoes.png` |
-| Agendamentos inbound | `docs/images/04-agendamentos-inbound.png` |
-| Operacao inbound | `docs/images/05-operacao-inbound.png` |
-| Modal de itens | `docs/images/06-itens-operacao.png` |
-| Check-in tablet | `docs/images/07-checkin.png` |
-| Check-in código | `docs/images/08-checkin-codigo.png` |
-| Inventario | `docs/images/09-inventario.png` |
-| Relatorios | `docs/images/10-relatorios.png` |
-
+| Login | [docs/images/01-login.png](docs/images/01-login.png) |
+| Primeiro acesso | [docs/images/02-primeiro-acesso.png](docs/images/02-primeiro-acesso.png) |
+| Menu com permissões | [docs/images/03-menu-permissoes.png](docs/images/03-menu-permissoes.png) |
+| Agendamentos inbound | [docs/images/04-agendamentos-inbound.png](docs/images/04-agendamentos-inbound.png) |
+| Operação inbound | [docs/images/05-operacao-inbound.png](docs/images/05-operacao-inbound.png) |
+| Modal de itens | [docs/images/06-itens-operacao.png](docs/images/06-itens-operacao.png) |
+| Check-in totem/tablet | [docs/images/07-checkin.png](docs/images/07-checkin.png) |
+| Check-in código | [docs/images/08-checkin-codigo.png](docs/images/08-checkin-codigo.png) |
+| Inventário | [docs/images/09-inventario.png](docs/images/09-inventario.png) |
+| Relatórios | [docs/images/10-relatorios.png](docs/images/10-relatorios.png) |
 
 ## Scripts úteis
 
@@ -323,34 +326,34 @@ npm run dev
 npm run build
 ```
 
-## Estrutura do repositorio
+## Estrutura do repositório
 
 ```text
 xyzlogistica/
-├── backend/
-│   └── ZyxLogistics.Api/
-│       ├── Controllers/
-│       ├── DTOs/
-│       ├── Models/
-│       ├── Repositories/
-│       ├── Scripts/
-│       ├── Security/
-│       └── Services/
-├── banco/
-│   └── zyx_banco.bak
-├── docs/
-│   └── images/
-└── frontend/
-    ├── images/
-    └── src/
-        ├── layouts/
-        ├── pages/
-        └── security/
+|-- backend/
+|   `-- ZyxLogistics.Api/
+|       |-- Controllers/
+|       |-- DTOs/
+|       |-- Models/
+|       |-- Repositories/
+|       |-- Scripts/
+|       |-- Security/
+|       `-- Services/
+|-- banco/
+|   `-- zyx_banco.bak
+|-- docs/
+|   `-- images/
+`-- frontend/
+    |-- images/
+    `-- src/
+        |-- layouts/
+        |-- pages/
+        `-- security/
 ```
 
-## Observacoes
+## Observações
 
-- A solucao simula um ambiente real de operação logística.
+- A solução simula um ambiente real de operação logística.
 - O controle de acesso é aplicado no frontend e no backend.
 - O banco utiliza stored procedures para manter a regra operacional centralizada.
 - O sistema permite testar SMS real via Twilio ou fluxo local com SMS simulado.
