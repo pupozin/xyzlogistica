@@ -758,7 +758,8 @@ WHERE p.Codigo IN
     N'operacoes.visualizar',
     N'operacoes.enviar_doca',
     N'operacoes.finalizar',
-    N'inventario.visualizar'
+    N'inventario.visualizar',
+    N'relatorios.visualizar'
 )
 AND NOT EXISTS
 (
@@ -2750,6 +2751,192 @@ BEGIN
     WHERE v.Id = @Id
       AND v.Ativo = 1
       AND t.Ativo = 1;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Relatorio_AgendamentosGeral
+    @DataInicio DATE,
+    @DataFim DATE,
+    @OperacaoId INT = NULL,
+    @StatusId INT = NULL,
+    @Produto NVARCHAR(150) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        a.Id AS Agenda,
+        o.Descricao AS Operacao,
+        s.Descricao AS Status,
+        a.DataHoraAgendada AS DataAgendada,
+        a.DataHoraChegada AS DataChegada,
+        a.DataHoraDoca AS DataDoca,
+        a.DataHoraFinalizado AS DataFinalizacao,
+        t.Nome AS Transportadora,
+        m.Nome AS Motorista,
+        m.Cnh AS CNH,
+        v.Placa,
+        l.Descricao AS Doca
+    FROM dbo.Agendamento a
+    INNER JOIN dbo.Operacao o ON o.Id = a.OperacaoId
+    INNER JOIN dbo.Status s ON s.Id = a.StatusId
+    INNER JOIN dbo.Transportadora t ON t.Id = a.TransportadoraId
+    INNER JOIN dbo.Motorista m ON m.Id = a.MotoristaId
+    INNER JOIN dbo.Veiculo v ON v.Id = a.VeiculoId
+    LEFT JOIN dbo.Local l ON l.Id = a.LocalId
+    WHERE a.DataHoraAgendada >= @DataInicio
+      AND a.DataHoraAgendada < DATEADD(DAY, 1, @DataFim)
+      AND (@OperacaoId IS NULL OR a.OperacaoId = @OperacaoId)
+      AND (@StatusId IS NULL OR a.StatusId = @StatusId)
+    ORDER BY a.DataHoraAgendada, a.Id;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Relatorio_EstoqueAtual
+    @DataInicio DATE,
+    @DataFim DATE,
+    @OperacaoId INT = NULL,
+    @StatusId INT = NULL,
+    @Produto NVARCHAR(150) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        p.Descricao AS Produto,
+        i.QuantidadeAtual AS QuantidadeAtual,
+        i.DataUltimaAtualizacao AS UltimaAtualizacao
+    FROM dbo.Inventario i
+    INNER JOIN dbo.Produto p ON p.Id = i.ProdutoId
+    WHERE p.Ativo = 1
+      AND (@Produto IS NULL OR p.Descricao LIKE '%' + @Produto + '%')
+    ORDER BY p.Descricao;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Relatorio_AgendasFinalizadas
+    @DataInicio DATE,
+    @DataFim DATE,
+    @OperacaoId INT = NULL,
+    @StatusId INT = NULL,
+    @Produto NVARCHAR(150) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        a.Id AS Agenda,
+        o.Descricao AS Operacao,
+        t.Nome AS Transportadora,
+        m.Nome AS Motorista,
+        m.Cnh AS CNH,
+        v.Placa,
+        l.Descricao AS Doca,
+        a.DataHoraAgendada AS DataAgendada,
+        a.DataHoraChegada AS DataChegada,
+        a.DataHoraDoca AS DataDoca,
+        a.DataHoraFinalizado AS DataFinalizacao,
+        DATEDIFF(MINUTE, a.DataHoraChegada, a.DataHoraFinalizado) AS TempoTotalMinutos,
+        DATEDIFF(MINUTE, a.DataHoraDoca, a.DataHoraFinalizado) AS TempoEmDocaMinutos
+    FROM dbo.Agendamento a
+    INNER JOIN dbo.Operacao o ON o.Id = a.OperacaoId
+    INNER JOIN dbo.Transportadora t ON t.Id = a.TransportadoraId
+    INNER JOIN dbo.Motorista m ON m.Id = a.MotoristaId
+    INNER JOIN dbo.Veiculo v ON v.Id = a.VeiculoId
+    LEFT JOIN dbo.Local l ON l.Id = a.LocalId
+    WHERE a.StatusId = 4
+      AND a.DataHoraFinalizado >= @DataInicio
+      AND a.DataHoraFinalizado < DATEADD(DAY, 1, @DataFim)
+      AND (@OperacaoId IS NULL OR a.OperacaoId = @OperacaoId)
+    ORDER BY a.DataHoraFinalizado, a.Id;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Relatorio_MovimentacaoEstoque
+    @DataInicio DATE,
+    @DataFim DATE,
+    @OperacaoId INT = NULL,
+    @StatusId INT = NULL,
+    @Produto NVARCHAR(150) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        p.Descricao AS Produto,
+        SUM(CASE WHEN a.OperacaoId = 1 THEN oi.Quantidade ELSE 0 END) AS QuantidadeRecebida,
+        SUM(CASE WHEN a.OperacaoId = 2 THEN oi.Quantidade ELSE 0 END) AS QuantidadeEnviada,
+        SUM(CASE WHEN a.OperacaoId = 1 THEN oi.Quantidade ELSE -oi.Quantidade END) AS SaldoMovimentado
+    FROM dbo.OperacaoItem oi
+    INNER JOIN dbo.Agendamento a ON a.Id = oi.AgendamentoId
+    INNER JOIN dbo.Produto p ON p.Id = oi.ProdutoId
+    WHERE a.StatusId = 4
+      AND a.DataHoraFinalizado >= @DataInicio
+      AND a.DataHoraFinalizado < DATEADD(DAY, 1, @DataFim)
+      AND (@OperacaoId IS NULL OR a.OperacaoId = @OperacaoId)
+      AND (@Produto IS NULL OR p.Descricao LIKE '%' + @Produto + '%')
+    GROUP BY p.Descricao
+    ORDER BY p.Descricao;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Relatorio_CargasRecebidasEnviadas
+    @DataInicio DATE,
+    @DataFim DATE,
+    @OperacaoId INT = NULL,
+    @StatusId INT = NULL,
+    @Produto NVARCHAR(150) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        CAST(a.DataHoraFinalizado AS DATE) AS Data,
+        SUM(CASE WHEN a.OperacaoId = 1 THEN 1 ELSE 0 END) AS CargasRecebidas,
+        SUM(CASE WHEN a.OperacaoId = 2 THEN 1 ELSE 0 END) AS CargasEnviadas,
+        COUNT(*) AS TotalCargas
+    FROM dbo.Agendamento a
+    WHERE a.StatusId = 4
+      AND a.DataHoraFinalizado >= @DataInicio
+      AND a.DataHoraFinalizado < DATEADD(DAY, 1, @DataFim)
+      AND (@OperacaoId IS NULL OR a.OperacaoId = @OperacaoId)
+    GROUP BY CAST(a.DataHoraFinalizado AS DATE)
+    ORDER BY Data;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.sp_Relatorio_PerformanceOperacional
+    @DataInicio DATE,
+    @DataFim DATE,
+    @OperacaoId INT = NULL,
+    @StatusId INT = NULL,
+    @Produto NVARCHAR(150) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        a.Id AS Agenda,
+        o.Descricao AS Operacao,
+        t.Nome AS Transportadora,
+        l.Descricao AS Doca,
+        a.DataHoraAgendada AS DataAgendada,
+        a.DataHoraChegada AS DataChegada,
+        a.DataHoraDoca AS DataDoca,
+        a.DataHoraFinalizado AS DataFinalizacao,
+        DATEDIFF(MINUTE, a.DataHoraAgendada, a.DataHoraChegada) AS AtrasoOuAntecedenciaCheckInMinutos,
+        DATEDIFF(MINUTE, a.DataHoraChegada, a.DataHoraDoca) AS EsperaParaDocaMinutos,
+        DATEDIFF(MINUTE, a.DataHoraDoca, a.DataHoraFinalizado) AS TempoEmDocaMinutos,
+        DATEDIFF(MINUTE, a.DataHoraChegada, a.DataHoraFinalizado) AS TempoTotalOperacaoMinutos
+    FROM dbo.Agendamento a
+    INNER JOIN dbo.Operacao o ON o.Id = a.OperacaoId
+    INNER JOIN dbo.Transportadora t ON t.Id = a.TransportadoraId
+    LEFT JOIN dbo.Local l ON l.Id = a.LocalId
+    WHERE a.StatusId = 4
+      AND a.DataHoraFinalizado >= @DataInicio
+      AND a.DataHoraFinalizado < DATEADD(DAY, 1, @DataFim)
+      AND (@OperacaoId IS NULL OR a.OperacaoId = @OperacaoId)
+    ORDER BY a.DataHoraFinalizado, a.Id;
 END
 GO
 

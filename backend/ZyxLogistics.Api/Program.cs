@@ -19,7 +19,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy(frontendCorsPolicy, policy =>
     {
         policy
-            .WithOrigins("http://localhost:5173")
+            .WithOrigins("http://localhost:5173", "http://localhost:5174")
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -91,6 +91,7 @@ builder.Services.AddAuthorization(options =>
         "operacoes.enviar_doca",
         "operacoes.finalizar",
         "inventario.visualizar",
+        "relatorios.visualizar",
         "locais.visualizar",
         "locais.criar",
         "locais.editar",
@@ -116,6 +117,7 @@ builder.Services.AddScoped<IOperacaoItemRepository, OperacaoItemRepository>();
 builder.Services.AddScoped<IOperacaoRepository, OperacaoRepository>();
 builder.Services.AddScoped<IPerfilRepository, PerfilRepository>();
 builder.Services.AddScoped<IProdutoRepository, ProdutoRepository>();
+builder.Services.AddScoped<IRelatorioRepository, RelatorioRepository>();
 builder.Services.AddScoped<ITransportadoraRepository, TransportadoraRepository>();
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<IVeiculoRepository, VeiculoRepository>();

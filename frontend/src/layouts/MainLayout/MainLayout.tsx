@@ -8,6 +8,7 @@ import {
   faChartSimple,
   faChevronRight,
   faGear,
+  faRightFromBracket,
   faTruck,
   faUser,
   faUsers,
@@ -34,6 +35,7 @@ type UserInfo = {
 
 type MainLayoutProps = {
   user: UserInfo | null
+  onLogout: () => void
 }
 
 const menuGroups: MenuGroup[] = [
@@ -46,11 +48,11 @@ const menuGroups: MenuGroup[] = [
     ],
   },
   {
-    label: 'Operação',
+    label: 'Operacao',
     icon: faTruck,
     children: [
-      { label: 'Operação Inbound', path: '/operacao/inbound' },
-      { label: 'Operação Outbound', path: '/operacao/outbound' },
+      { label: 'Operacao Inbound', path: '/operacao/inbound' },
+      { label: 'Operacao Outbound', path: '/operacao/outbound' },
     ],
   },
   {
@@ -59,32 +61,33 @@ const menuGroups: MenuGroup[] = [
     children: [
       { label: 'Transportadora', path: '/cadastros/transportadora' },
       { label: 'Motorista', path: '/cadastros/motorista' },
-      { label: 'Veículo', path: '/cadastros/veiculo' },
+      { label: 'Veiculo', path: '/cadastros/veiculo' },
       { label: 'Local', path: '/cadastros/local' },
       { label: 'Produto', path: '/cadastros/produto' },
-      { label: 'Usuário', path: '/cadastros/usuario' },
+      { label: 'Usuario', path: '/cadastros/usuario' },
       { label: 'Perfil', path: '/cadastros/perfil' },
     ],
   },
   {
-    label: 'Configurações',
+    label: 'Configuracoes',
     icon: faGear,
     children: [{ label: 'Janela agendamentos', path: '/configuracoes/janela-agendamentos' }],
   },
   {
-    label: 'Inventário',
+    label: 'Inventario',
     icon: faBoxArchive,
-    children: [{ label: 'Inventário', path: '/inventario' }],
+    children: [{ label: 'Inventario', path: '/inventario' }],
   },
   {
-    label: 'Relatórios',
+    label: 'Relatorios',
     icon: faChartSimple,
-    children: [{ label: 'Relatórios', path: '/relatorios' }],
+    children: [{ label: 'Relatorios', path: '/relatorios' }],
   },
 ]
 
-function MainLayout({ user }: MainLayoutProps) {
+function MainLayout({ user, onLogout }: MainLayoutProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(true)
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const location = useLocation()
 
   const currentGroupLabel = useMemo(() => {
@@ -103,6 +106,11 @@ function MainLayout({ user }: MainLayoutProps) {
     }
 
     setExpandedGroup((current) => (current === label ? '' : label))
+  }
+
+  function handleLogout() {
+    setIsUserMenuOpen(false)
+    onLogout()
   }
 
   return (
@@ -155,10 +163,25 @@ function MainLayout({ user }: MainLayoutProps) {
       <div className="content-area">
         <header className="topbar">
           <div className="user-badge">
-            <span className="user-icon">
+            <button
+              className="user-icon"
+              type="button"
+              onClick={() => setIsUserMenuOpen((open) => !open)}
+              aria-label="Abrir menu do usuario"
+              aria-expanded={isUserMenuOpen}
+            >
               <FontAwesomeIcon icon={faUser} />
-            </span>
-            <span>{user?.nome ?? user?.email ?? 'Usuário'} - XYZ Logística</span>
+            </button>
+            <span>{user?.nome ?? user?.email ?? 'Usuario'} - XYZ Logistica</span>
+
+            {isUserMenuOpen && (
+              <div className="user-menu" role="menu">
+                <button className="user-menu-item" type="button" onClick={handleLogout} role="menuitem">
+                  <FontAwesomeIcon icon={faRightFromBracket} />
+                  Sair
+                </button>
+              </div>
+            )}
           </div>
         </header>
 

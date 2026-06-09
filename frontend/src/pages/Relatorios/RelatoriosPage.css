@@ -1,0 +1,135 @@
+.relatorios-page {
+  gap: 24px;
+}
+
+.relatorios-filter-band {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(140px, 1fr));
+  gap: 16px;
+  border: 1px solid #dddddd;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 8px 10px 14px rgba(0, 0, 0, 0.14);
+  padding: 22px 24px;
+}
+
+.relatorios-filter-band label {
+  display: grid;
+  gap: 8px;
+  color: #000000;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.relatorios-filter-band input,
+.relatorios-filter-band select {
+  height: 42px;
+  border: 1px solid #dcdcdc;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #000000;
+  padding: 0 14px;
+  font: inherit;
+  font-weight: 500;
+  outline: none;
+}
+
+.relatorios-filter-band input:focus,
+.relatorios-filter-band select:focus {
+  border-color: #d30a0a;
+  box-shadow: 0 0 0 3px rgba(211, 10, 10, 0.1);
+}
+
+.relatorios-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(280px, 1fr));
+  gap: 18px;
+}
+
+.relatorio-card {
+  min-height: 158px;
+  display: grid;
+  grid-template-columns: 58px 1fr auto;
+  align-items: center;
+  gap: 18px;
+  border: 1px solid #dddddd;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 8px 10px 14px rgba(0, 0, 0, 0.14);
+  padding: 24px;
+}
+
+.relatorio-icon {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 204, 0, 0.24);
+  color: #e7b700;
+  font-size: 24px;
+}
+
+.relatorio-card-content {
+  display: grid;
+  gap: 8px;
+}
+
+.relatorio-card h2 {
+  margin: 0;
+  color: #000000;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.relatorio-card p {
+  max-width: 520px;
+  margin: 0;
+  color: #777777;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.relatorio-export-button {
+  height: 44px;
+  min-width: 138px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: 0;
+  border-radius: 8px;
+  background: #d30a0a;
+  color: #ffffff;
+  padding: 0 18px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.relatorio-export-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+@media (max-width: 1180px) {
+  .relatorios-filter-band {
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+  }
+
+  .relatorios-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .relatorios-filter-band,
+  .relatorio-card {
+    grid-template-columns: 1fr;
+  }
+
+  .relatorio-export-button {
+    width: 100%;
+  }
+}

@@ -8,7 +8,7 @@ import JanelaAgendamentosPage from './pages/Configuracoes/JanelaAgendamentosPage
 import InventarioPage from './pages/Inventario/InventarioPage'
 import Login from './pages/Login/Login'
 import OperacoesPage from './pages/Operacoes/OperacoesPage'
-import PlaceholderPage from './pages/PlaceholderPage'
+import RelatoriosPage from './pages/Relatorios/RelatoriosPage'
 
 type UserInfo = {
   nome?: string
@@ -37,6 +37,12 @@ function App() {
   const initialUser = useMemo(() => getStoredUser(), [])
   const [user, setUser] = useState<UserInfo | null>(initialUser)
 
+  function handleLogout() {
+    localStorage.removeItem('zyx.user')
+    localStorage.removeItem('zyx.token')
+    setUser(null)
+  }
+
   return (
     <BrowserRouter>
       <Routes>
@@ -45,7 +51,7 @@ function App() {
         {!user ? (
           <Route path="*" element={<Login onAuthenticated={setUser} />} />
         ) : (
-          <Route element={<MainLayout user={user} />}>
+          <Route element={<MainLayout user={user} onLogout={handleLogout} />}>
             <Route index element={<Navigate to="/agendamentos/inbound" replace />} />
             <Route path="/agendamentos/inbound" element={<AgendamentosPage mode="inbound" />} />
             <Route path="/agendamentos/outbound" element={<AgendamentosPage mode="outbound" />} />
@@ -60,7 +66,7 @@ function App() {
             <Route path="/cadastros/perfil" element={<CadastroListPage cadastro="perfil" />} />
             <Route path="/configuracoes/janela-agendamentos" element={<JanelaAgendamentosPage />} />
             <Route path="/inventario" element={<InventarioPage />} />
-            <Route path="/relatorios" element={<PlaceholderPage title="Relatórios" />} />
+            <Route path="/relatorios" element={<RelatoriosPage />} />
             <Route path="*" element={<Navigate to="/agendamentos/inbound" replace />} />
           </Route>
         )}
