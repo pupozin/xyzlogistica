@@ -51,7 +51,7 @@ const menuGroups: MenuGroup[] = [
     ],
   },
   {
-    label: 'Operacao',
+    label: 'Operação',
     icon: faTruck,
     children: [
       { label: 'Operação Inbound', path: '/operacao/inbound', permission: 'operacoes.visualizar' },
@@ -189,7 +189,7 @@ function MainLayout({ user, onLogout }: MainLayoutProps) {
             >
               <FontAwesomeIcon icon={faUser} />
             </button>
-            <span>{user?.nome ?? user?.email ?? 'Usuario'} - XYZ Logistica</span>
+            <span>{user?.nome ?? user?.email ?? 'Usuario'} - {user?.perfilDescricao ?? 'Perfil'}</span>
 
             {isUserMenuOpen && (
               <div className="user-menu" role="menu">
