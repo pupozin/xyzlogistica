@@ -139,6 +139,11 @@
   font-weight: 700;
 }
 
+.status-pill-finalizado {
+  background: #c8f7ce;
+  color: #167a22;
+}
+
 .operacao-actions {
   display: flex;
   justify-content: center;
@@ -210,6 +215,22 @@
   background: #ffffff;
   color: #d30a0a;
   cursor: pointer;
+}
+
+.operacao-confirm-modal {
+  text-align: center;
+}
+
+.operacao-confirm-icon {
+  width: 76px;
+  height: 76px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  background: rgba(255, 204, 0, 0.22);
+  color: #18bf22;
+  font-size: 34px;
 }
 
 .operacao-toast {

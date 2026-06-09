@@ -1988,11 +1988,21 @@ BEGIN
 END
 GO
 
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
 CREATE OR ALTER PROCEDURE dbo.sp_Agendamento_Finalizar
     @Id INT
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.OperacaoItem WHERE AgendamentoId = @Id)
+    BEGIN
+        THROW 50007, 'Adicione ao menos um item antes de finalizar a operacao.', 1;
+    END
 
     UPDATE dbo.Agendamento
     SET

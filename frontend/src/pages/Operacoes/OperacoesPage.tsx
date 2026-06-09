@@ -112,6 +112,7 @@ function OperacoesPage({ mode }: OperacoesPageProps) {
   const [message, setMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [selectedAgendamento, setSelectedAgendamento] = useState<Agendamento | null>(null)
+  const [finalizeAgendamento, setFinalizeAgendamento] = useState<Agendamento | null>(null)
   const [docaModalOpen, setDocaModalOpen] = useState(false)
   const [localId, setLocalId] = useState('')
   const [locais, setLocais] = useState<Option[]>([])
@@ -261,6 +262,7 @@ function OperacoesPage({ mode }: OperacoesPageProps) {
   }
 
   async function handleFinalizar(agendamento: Agendamento) {
+    setIsSaving(true)
     setMessage('')
 
     try {
@@ -270,13 +272,16 @@ function OperacoesPage({ mode }: OperacoesPageProps) {
       })
 
       if (!response.ok) {
-        throw new Error(await readErrorMessage(response, 'Não foi possível finalizar.'))
+        throw new Error(await readErrorMessage(response, 'Nao foi possivel finalizar.'))
       }
 
       await loadAbas()
       setActiveStatusId(4)
+      setFinalizeAgendamento(null)
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Erro ao finalizar.')
+      showToast(error instanceof Error ? error.message : 'Erro ao finalizar.')
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -430,7 +435,9 @@ function OperacoesPage({ mode }: OperacoesPageProps) {
                 <tr key={agendamento.id}>
                   <td>{String(agendamento.id).padStart(4, '0')}</td>
                   <td>
-                    <span className="status-pill">{agendamento.statusDescricao}</span>
+                    <span className={`status-pill ${agendamento.statusId === 4 ? 'status-pill-finalizado' : ''}`}>
+                      {agendamento.statusDescricao}
+                    </span>
                   </td>
                   <td>{formatDateTime(agendamento.dataHoraAgendada)}</td>
                   <td>{formatDateTime(agendamento.dataHoraChegada)}</td>
@@ -454,7 +461,7 @@ function OperacoesPage({ mode }: OperacoesPageProps) {
                           className="operacao-action-button"
                           type="button"
                           onClick={() =>
-                            activeStatusId === 2 ? void openDocaModal(agendamento) : void handleFinalizar(agendamento)
+                            activeStatusId === 2 ? void openDocaModal(agendamento) : setFinalizeAgendamento(agendamento)
                           }
                           aria-label={activeStatusId === 2 ? 'Enviar para doca' : 'Finalizar'}
                         >
@@ -537,6 +544,42 @@ function OperacoesPage({ mode }: OperacoesPageProps) {
               </button>
             </footer>
           </form>
+        </div>
+      )}
+
+      {finalizeAgendamento && (
+        <div className="cadastro-modal-backdrop">
+          <div className="delete-modal operacao-confirm-modal" role="dialog" aria-modal="true">
+            <button
+              className="modal-close-button"
+              type="button"
+              onClick={() => setFinalizeAgendamento(null)}
+              aria-label="Fechar"
+            >
+              <FontAwesomeIcon icon={faXmark} />
+            </button>
+
+            <div className="operacao-confirm-icon">
+              <FontAwesomeIcon icon={faCheck} />
+            </div>
+            <h2>Finalizar operacao</h2>
+            <p>Deseja finalizar esta operacao?</p>
+
+            <footer className="modal-actions">
+              <button className="modal-cancel-button" type="button" onClick={() => setFinalizeAgendamento(null)}>
+                Voltar
+              </button>
+              <button
+                className="modal-save-button"
+                type="button"
+                disabled={isSaving}
+                onClick={() => void handleFinalizar(finalizeAgendamento)}
+              >
+                <FontAwesomeIcon icon={faCheck} />
+                {isSaving ? 'Finalizando...' : 'Finalizar'}
+              </button>
+            </footer>
+          </div>
         </div>
       )}
 
