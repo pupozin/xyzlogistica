@@ -94,7 +94,7 @@ O projeto possui um backup em:
 banco/zyx_banco.bak
 ```
 
-Esse caminho foi mantido para facilitar a avaliação e permitir restaurar o ambiente com dados de demonstração.
+Esse caminho foi mantido para facilitar e permitir restaurar o ambiente com dados de demonstração.
 
 ### Opção 2: Criar pelo script
 
@@ -292,7 +292,6 @@ Os filtros principais são período, operação e tipo de relatório.
 
 ## Evidências visuais
 
-Adicione os prints reais em `docs/images`. A tabela abaixo já aponta para os arquivos esperados.
 
 | Tela | Arquivo |
 | --- | --- |
